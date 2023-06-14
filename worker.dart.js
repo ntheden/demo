@@ -7213,8 +7213,8 @@
     PortToChannel_channel(_this) {
       var t4, _null = null,
         _s8_ = "_foreign",
-        controller = new A.StreamChannelController(type$.StreamChannelController_nullable_Object),
-        t1 = type$.nullable_Object,
+        controller = new A.StreamChannelController(type$.StreamChannelController_dynamic),
+        t1 = type$.dynamic,
         localToForeignController = A.StreamController_StreamController(_null, _null, false, t1),
         foreignToLocalController = A.StreamController_StreamController(_null, _null, false, t1),
         t2 = A._instanceType(foreignToLocalController),
@@ -16278,7 +16278,7 @@
               // returning from await.
               executor = $async$result;
               $async$goto = 4;
-              return A._asyncAwait(A.Future_Future$delayed(B.C_Duration, type$.void), $async$_runQuery$4);
+              return A._asyncAwait(A.Future_Future$delayed(B.C_Duration, type$.dynamic), $async$_runQuery$4);
             case 4:
               // returning from await.
               A.checkIfCancelled();
@@ -16478,49 +16478,52 @@
               executor = $async$self._managedExecutors.$index(0, executorId);
               if (!type$.TransactionExecutor._is(executor))
                 throw A.wrapException(A.ArgumentError$value(executorId, "transactionId", "Does not reference a transaction. This might happen if you don't await all operations made inside a transaction, in which case the transaction might complete with pending operations."));
-            case 6:
+              $async$handler = 6;
+            case 9:
               // switch
               switch (action.index) {
                 case 1:
                   // goto case
-                  $async$goto = 8;
+                  $async$goto = 11;
                   break;
                 case 2:
                   // goto case
-                  $async$goto = 9;
+                  $async$goto = 12;
                   break;
                 default:
                   // goto after switch
-                  $async$goto = 7;
+                  $async$goto = 10;
                   break;
               }
               break;
-            case 8:
+            case 11:
               // case
-              $async$goto = 10;
+              $async$goto = 13;
               return A._asyncAwait(J.send$0$z(executor), $async$_transactionControl$3);
-            case 10:
+            case 13:
               // returning from await.
-              executorId.toString;
-              $async$self._releaseExecutor$1(executorId);
               // goto after switch
-              $async$goto = 7;
+              $async$goto = 10;
               break;
-            case 9:
+            case 12:
               // case
-              $async$handler = 11;
               $async$goto = 14;
               return A._asyncAwait(executor.rollback$0(), $async$_transactionControl$3);
             case 14:
               // returning from await.
-              $async$next.push(13);
-              // goto finally
-              $async$goto = 12;
+              // goto after switch
+              $async$goto = 10;
               break;
-            case 11:
+            case 10:
+              // after switch
+              $async$next.push(8);
+              // goto finally
+              $async$goto = 7;
+              break;
+            case 6:
               // uncaught
               $async$next = [2];
-            case 12:
+            case 7:
               // finally
               $async$handler = 2;
               executorId.toString;
@@ -16528,13 +16531,8 @@
               // goto the next finally handler
               $async$goto = $async$next.pop();
               break;
-            case 13:
+            case 8:
               // after finally
-              // goto after switch
-              $async$goto = 7;
-              break;
-            case 7:
-              // after switch
             case 1:
               // return
               return A._asyncReturn($async$returnValue, $async$completer);
@@ -16647,8 +16645,8 @@
               $async$handler = 2;
               t2 = $async$self.connection;
               id0 = t2.newRequestId$0();
-              t3 = new A._Future($.Zone__current, type$._Future_void);
-              t2._pendingRequests.$indexSet(0, id0, new A._PendingRequest(new A._AsyncCompleter(t3, type$._AsyncCompleter_void), A.StackTrace_current()));
+              t3 = new A._Future($.Zone__current, type$._Future_dynamic);
+              t2._pendingRequests.$indexSet(0, id0, new A._PendingRequest(new A._AsyncCompleter(t3, type$._AsyncCompleter_dynamic), A.StackTrace_current()));
               t2._send$1(new A.Request(id0, new A.RunBeforeOpen(details, id)));
               $async$goto = 5;
               return A._asyncAwait(t3, $async$beforeOpen$2);
@@ -18574,7 +18572,7 @@
       SqlDialect: findType("SqlDialect"),
       SqlJsModule: findType("SqlJsModule"),
       StackTrace: findType("StackTrace"),
-      StreamChannelController_nullable_Object: findType("StreamChannelController<Object?>"),
+      StreamChannelController_dynamic: findType("StreamChannelController<@>"),
       String: findType("String"),
       StyleSheet: findType("StyleSheet"),
       SubscriptionStream_nullable_Object: findType("SubscriptionStream<Object?>"),
@@ -18811,7 +18809,7 @@
 };
     B.C_JS_CONST3 = function(hooks) { return hooks; }
 ;
-    B.C_ListEquality = new A.ListEquality(A.findType("ListEquality<Object?>"));
+    B.C_ListEquality = new A.ListEquality(A.findType("ListEquality<@>"));
     B.C_NoTransactionDelegate = new A.NoTransactionDelegate();
     B.C_OutOfMemoryError = new A.OutOfMemoryError();
     B.C_SentinelValue = new A.SentinelValue();
