@@ -19,17 +19,34 @@ class ChatsList extends StatefulWidget {
   late StreamSubscription<List<MessageEntry>> subscription;
   List<Pair<Contact, MessageEntry>> conversations = [];
   _ChatsListState? _stateObj;
+  Timer? _timer;
 
   ChatsList(this.currentUser, {Key? key, this.title = 'Messages'})
       : super(key: key) {
     stream = StreamController<List<MessageEntry>>();
     stream.addStream(watchUserMessages(currentUser));
-    subscription = stream.stream.listen((entries) {
-      // TODO: This stream should be from not far back in time and
-      // has to add its data to the existing list
-      getConversations(entries);
-      _stateObj?.toggleState();
+    subscription = stream.stream.listen((entries) => processMessages(entries));
+    // If offline, there will be no receive or database events to trigger a
+    // widget rebuild. We use timer that triggers the build and cancels itself
+    _timer = Timer.periodic(Duration(milliseconds: 500), (messages) {
+      if (_stateObj != null) {
+        getUserMessages(currentUser).then((messages) => processMessages(messages));
+        _timer?.cancel();
+      }
     });
+  }
+
+  void processMessages(messages) {
+    // TODO: This stream should be from not far back in time and
+    // has to add its data to the existing list
+    getConversations(messages);
+    if (_stateObj == null) {
+      subscription.cancel();
+      stream.close();
+      _timer?.cancel();
+    } else {
+      _stateObj?.toggleState();
+    }
   }
 
   void getConversations(messages) async {
@@ -81,24 +98,30 @@ class _ChatsListState extends State<ChatsList> {
   }
 
   @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
   void dispose() {
-    widget.stream.close();
-    widget.subscription.cancel();
+    widget._stateObj = null;
     _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    Timer(Duration(milliseconds: 500), () {
-        _scrollController.animateTo(
-          //0.0,
-          _scrollController.position.maxScrollExtent,
-          duration: Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-        );
-      }
-    );
+    if (widget.conversations.length > 0) {
+      Timer(Duration(milliseconds: 500), () {
+          _scrollController.animateTo(
+            //0.0,
+            _scrollController.position.minScrollExtent,
+            duration: Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+          );
+        }
+      );
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -116,29 +139,31 @@ class _ChatsListState extends State<ChatsList> {
           )
         ],
       ),
-      body: ListView.builder(
-        key: _listKey,
-        controller: _scrollController,
-        itemCount: widget.conversations.length,
-        itemBuilder: (BuildContext context, int index) {
-          return Column(children: [
-            getChatsEntry(context, index),
-            const Divider(height: 0),
-          ]);
-        },
-      ),
-      drawer: DrawerScreen(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final routerDelegate = Get.put(MyRouterDelegate());
-          routerDelegate.pushPage(name: '/contacts', arguments: {
-            'intent': 'chat',
-            'user': widget.currentUser,
-          });
-        },
-        child: const Icon(Icons.edit_rounded),
-      ),
-    );
+      body: widget.conversations.length == 0
+        ? LinearProgressIndicator()
+        : ListView.builder(
+          key: _listKey,
+          controller: _scrollController,
+          itemCount: widget.conversations.length,
+          itemBuilder: (BuildContext context, int index) {
+            return Column(children: [
+              getChatsEntry(context, index),
+              const Divider(height: 0),
+            ]);
+          },
+        ),
+        drawer: DrawerScreen(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            final routerDelegate = Get.put(MyRouterDelegate());
+            routerDelegate.pushPage(name: '/contacts', arguments: {
+              'intent': 'chat',
+              'user': widget.currentUser,
+            });
+          },
+          child: const Icon(Icons.edit_rounded),
+        ),
+      );
   }
 
   ChatsEntry getChatsEntry(BuildContext context, int index) {

@@ -26,9 +26,6 @@ abstract class Mixin extends Object
 
   Mixin._();
 
-  /// Whether the mixin is a `base mixin`.
-  bool get base;
-
   @override
   BuiltList<Expression> get annotations;
 
@@ -62,9 +59,6 @@ abstract class MixinBuilder extends Object
   factory MixinBuilder() = _$MixinBuilder;
 
   MixinBuilder._();
-
-  /// Whether the mixin is a `base mixin`.
-  bool base = false;
 
   @override
   ListBuilder<Expression> annotations = ListBuilder<Expression>();

@@ -4,23 +4,37 @@
 
 // ignore_for_file: constant_identifier_names
 
-part of protobuf;
+part of '../../protobuf.dart';
 
-const int TAG_TYPE_BITS = 3;
-const int TAG_TYPE_MASK = (1 << TAG_TYPE_BITS) - 1;
+const int _TAG_TYPE_BITS = 3;
+const int _TAG_TYPE_MASK = (1 << _TAG_TYPE_BITS) - 1;
 
+/// @nodoc
 const int WIRETYPE_VARINT = 0;
+
+/// @nodoc
 const int WIRETYPE_FIXED64 = 1;
+
+/// @nodoc
 const int WIRETYPE_LENGTH_DELIMITED = 2;
+
+/// @nodoc
 const int WIRETYPE_START_GROUP = 3;
+
+/// @nodoc
 const int WIRETYPE_END_GROUP = 4;
+
+/// @nodoc
 const int WIRETYPE_FIXED32 = 5;
 
-int getTagFieldNumber(int tag) => tag >> TAG_TYPE_BITS;
+/// @nodoc
+int getTagFieldNumber(int tag) => tag >> _TAG_TYPE_BITS;
 
-int getTagWireType(int tag) => tag & TAG_TYPE_MASK;
+/// @nodoc
+int getTagWireType(int tag) => tag & _TAG_TYPE_MASK;
 
-int makeTag(int fieldNumber, int tag) => (fieldNumber << TAG_TYPE_BITS) | tag;
+/// @nodoc
+int makeTag(int fieldNumber, int tag) => (fieldNumber << _TAG_TYPE_BITS) | tag;
 
 /// Returns true if the wireType can be merged into the given fieldType.
 bool _wireTypeMatches(int fieldType, int wireType) {

@@ -233,7 +233,7 @@ class JoinedSelectStatement<FirstT extends HasResultSet, FirstD>
 
     return database
         .createStream(fetcher)
-        .asyncMapPerSubscription((rows) => _mapResponse(ctx, rows));
+        .asyncMap((rows) => _mapResponse(ctx, rows));
   }
 
   @override

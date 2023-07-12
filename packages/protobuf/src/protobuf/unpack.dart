@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of protobuf;
+part of '../../protobuf.dart';
 
 /// Unpacks the message in [value] into [instance].
 ///
@@ -10,6 +10,8 @@ part of protobuf;
 /// with the type of [instance].
 ///
 /// This is a helper method for `Any.unpackInto`.
+///
+/// @nodoc
 void unpackIntoHelper<T extends GeneratedMessage>(
     List<int> value, T instance, String typeUrl,
     {ExtensionRegistry extensionRegistry = ExtensionRegistry.EMPTY}) {
@@ -21,7 +23,7 @@ void unpackIntoHelper<T extends GeneratedMessage>(
   //   in the type URL, for example "foo.bar.com/x/y.z" will yield type
   //   name "y.z".
   if (!canUnpackIntoHelper(instance, typeUrl)) {
-    var typeName = instance.info_.qualifiedMessageName;
+    final typeName = instance.info_.qualifiedMessageName;
     throw InvalidProtocolBufferException.wrongAnyMessage(
         _typeNameFromUrl(typeUrl), typeName);
   }
@@ -32,11 +34,13 @@ void unpackIntoHelper<T extends GeneratedMessage>(
 /// `typeUrl`.
 ///
 /// This is a helper method for `Any.canUnpackInto`.
+///
+/// @nodoc
 bool canUnpackIntoHelper(GeneratedMessage instance, String typeUrl) {
   return instance.info_.qualifiedMessageName == _typeNameFromUrl(typeUrl);
 }
 
 String _typeNameFromUrl(String typeUrl) {
-  var index = typeUrl.lastIndexOf('/');
+  final index = typeUrl.lastIndexOf('/');
   return index == -1 ? '' : typeUrl.substring(index + 1);
 }

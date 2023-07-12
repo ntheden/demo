@@ -9,16 +9,14 @@ import 'package:meta/meta.dart';
 import '../base.dart';
 import '../mixins/annotations.dart';
 import '../mixins/dartdoc.dart';
-import '../mixins/generics.dart';
 import '../visitors.dart';
 import 'expression.dart';
-import 'reference.dart';
 
 part 'typedef.g.dart';
 
 @immutable
 abstract class TypeDef extends Object
-    with HasAnnotations, HasDartDocs, HasGenerics
+    with HasAnnotations, HasDartDocs
     implements Built<TypeDef, TypeDefBuilder>, Spec {
   factory TypeDef([void Function(TypeDefBuilder)? updates]) = _$TypeDef;
 
@@ -41,7 +39,7 @@ abstract class TypeDef extends Object
 }
 
 abstract class TypeDefBuilder extends Object
-    with HasAnnotationsBuilder, HasDartDocsBuilder, HasGenericsBuilder
+    with HasAnnotationsBuilder, HasDartDocsBuilder
     implements Builder<TypeDef, TypeDefBuilder> {
   factory TypeDefBuilder() = _$TypeDefBuilder;
 
@@ -52,9 +50,6 @@ abstract class TypeDefBuilder extends Object
 
   @override
   ListBuilder<String> docs = ListBuilder<String>();
-
-  @override
-  ListBuilder<Reference> types = ListBuilder<Reference>();
 
   String? name;
 

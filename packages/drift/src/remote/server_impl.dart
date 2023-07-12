@@ -143,7 +143,7 @@ class ServerImplementation implements DriftServer {
     final executor = await _loadExecutor(transactionId);
 
     // Give cancellations more time to come in
-    await Future<void>.delayed(Duration.zero);
+    await Future.delayed(Duration.zero);
     checkIfCancelled();
 
     switch (method) {
@@ -209,24 +209,19 @@ class ServerImplementation implements DriftServer {
       );
     }
 
-    switch (action) {
-      case TransactionControl.commit:
-        await executor.send();
-        // The transaction should only be released if the commit doesn't throw.
-        _releaseExecutor(executorId!);
-        break;
-      case TransactionControl.rollback:
-        // Rollbacks shouldn't fail. Other parts of drift assume the transaction
-        // to be over after a rollback either way, so we always release the
-        // executor in this case.
-        try {
+    try {
+      switch (action) {
+        case TransactionControl.commit:
+          await executor.send();
+          break;
+        case TransactionControl.rollback:
           await executor.rollback();
-        } finally {
-          _releaseExecutor(executorId!);
-        }
-        break;
-      default:
-        assert(false, 'Unknown TransactionControl');
+          break;
+        default:
+          assert(false, 'Unknown TransactionControl');
+      }
+    } finally {
+      _releaseExecutor(executorId!);
     }
   }
 
@@ -282,7 +277,7 @@ class _ServerDbUser implements QueryExecutorUser {
       QueryExecutor executor, OpeningDetails details) async {
     final id = _server._putExecutor(executor, beforeCurrent: true);
     try {
-      await connection.request<void>(RunBeforeOpen(details, id));
+      await connection.request(RunBeforeOpen(details, id));
     } finally {
       _server._releaseExecutor(id);
     }

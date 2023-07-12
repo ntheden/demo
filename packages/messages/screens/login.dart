@@ -8,7 +8,7 @@ import 'package:multiavatar/multiavatar.dart';
 import '../db/db.dart';
 import '../db/crud.dart';
 import '../router/delegate.dart';
-import '../nostr/relays.dart';
+import '../network/network.dart';
 import '../util/screen.dart';
 
 class Login extends StatefulWidget {
@@ -60,21 +60,18 @@ class _LoginState extends State<Login> {
   }
 
   void createUserAndLogin(Keychain keys, String name) async {
-    await insertNpub(keys.public, name, privkey: keys.private);
     Contact? user;
     try {
-      user = await createContactFromNpubs(
-        [await getNpub(keys.public)],
-        name,
-      );
+      user = await createContact(keys.public, name, privkey: keys.private);
     } catch (error) {
       print(error);
     }
-    _npub = keys.npub; // trying to get rid of that flash of the wrong avatar
+    // trying to get rid of that flash of the wrong avatar
+    //widget.instance.addPostFrameCallback((_) => setState(_npub = keys.npub));
     await switchUser(user!.contact.id);
     Navigator.pop(context);
     routerDelegate.pushPage(name: '/chats', arguments: user!);
-    getRelays();
+    getNetwork();
   }
 
   @override

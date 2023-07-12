@@ -17,7 +17,6 @@ import 'specs/method.dart';
 import 'specs/mixin.dart';
 import 'specs/reference.dart';
 import 'specs/type_function.dart';
-import 'specs/type_record.dart';
 import 'specs/type_reference.dart';
 import 'specs/typedef.dart';
 import 'visitors.dart';
@@ -116,23 +115,8 @@ class DartEmitter extends Object
     for (var a in spec.annotations) {
       visitAnnotation(a, out);
     }
-
-    void writeModifier() {
-      if (spec.modifier != null) {
-        out.write('${spec.modifier!.name} ');
-      }
-    }
-
-    if (spec.sealed) {
-      out.write('sealed ');
-    } else {
-      if (spec.abstract) {
-        out.write('abstract ');
-      }
-      writeModifier();
-      if (spec.mixin) {
-        out.write('mixin ');
-      }
+    if (spec.abstract) {
+      out.write('abstract ');
     }
     out.write('class ${spec.name}');
     visitTypeParameters(spec.types.map((r) => r.type), out);
@@ -180,9 +164,6 @@ class DartEmitter extends Object
       visitAnnotation(a, out);
     }
 
-    if (spec.base) {
-      out.write('base ');
-    }
     out.write('mixin ${spec.name}');
     visitTypeParameters(spec.types.map((r) => r.type), out);
     if (spec.on != null) {
@@ -555,45 +536,13 @@ class DartEmitter extends Object
   }
 
   @override
-  StringSink visitRecordType(RecordType spec, [StringSink? output]) {
-    final out = (output ??= StringBuffer())..write('(');
-    visitAll<Reference>(spec.positionalFieldTypes, out, (spec) {
-      spec.accept(this, out);
-    });
-    if (spec.namedFieldTypes.isNotEmpty) {
-      if (spec.positionalFieldTypes.isNotEmpty) {
-        out.write(', ');
-      }
-      out.write('{');
-      visitAll<MapEntry<String, Reference>>(spec.namedFieldTypes.entries, out,
-          (entry) {
-        entry.value.accept(this, out);
-        out.write(' ${entry.key}');
-      });
-      out.write('}');
-    } else if (spec.positionalFieldTypes.length == 1) {
-      out.write(',');
-    }
-    out.write(')');
-    // It doesn't really make sense to use records without
-    // `_useNullSafetySyntax`, but since code_builder is generally very
-    // permissive, follow it here too.
-    if (_useNullSafetySyntax && (spec.isNullable ?? false)) {
-      out.write('?');
-    }
-    return out;
-  }
-
-  @override
   StringSink visitTypeDef(TypeDef spec, [StringSink? output]) {
     final out = output ??= StringBuffer();
     spec.docs.forEach(out.writeln);
     for (var a in spec.annotations) {
       visitAnnotation(a, out);
     }
-    out.write('typedef ${spec.name}');
-    visitTypeParameters(spec.types.map((r) => r.type), out);
-    out.write(' = ');
+    out.write('typedef ${spec.name} = ');
     spec.definition.accept(this, out);
     out.writeln(';');
     return out;

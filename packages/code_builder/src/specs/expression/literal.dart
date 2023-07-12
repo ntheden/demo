@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of '../expression.dart';
+part of code_builder.src.specs.expression;
 
 /// Converts a runtime Dart [literal] value into an [Expression].
 ///
@@ -65,20 +65,6 @@ Expression literalString(String value, {bool raw = false}) {
   return LiteralExpression._("${raw ? 'r' : ''}'$escaped'");
 }
 
-/// Create a literal `...` operator for use when creating a Map literal.
-///
-/// *NOTE* This is used as a sentinel when constructing a `literalMap` or a
-/// or `literalConstMap` to signify that the value should be spread. Do NOT
-/// reuse the value when creating a Map with multiple spreads.
-Expression literalSpread() => LiteralSpreadExpression._(false);
-
-/// Create a literal `...?` operator for use when creating a Map literal.
-///
-/// *NOTE* This is used as a sentinel when constructing a `literalMap` or a
-/// or `literalConstMap` to signify that the value should be spread. Do NOT
-/// reuse the value when creating a Map with multiple spreads.
-Expression literalNullSafeSpread() => LiteralSpreadExpression._(true);
-
 /// Creates a literal list expression from [values].
 LiteralListExpression literalList(Iterable<Object?> values,
         [Reference? type]) =>
@@ -113,18 +99,6 @@ LiteralMapExpression literalConstMap(
 ]) =>
     LiteralMapExpression._(true, values, keyType, valueType);
 
-/// Create a literal record expression from [positionalFieldValues] and
-/// [namedFieldValues].
-LiteralRecordExpression literalRecord(List<Object?> positionalFieldValues,
-        Map<String, Object?> namedFieldValues) =>
-    LiteralRecordExpression._(false, positionalFieldValues, namedFieldValues);
-
-/// Create a literal `const` record expression from [positionalFieldValues] and
-/// [namedFieldValues].
-LiteralRecordExpression literalConstRecord(List<Object?> positionalFieldValues,
-        Map<String, Object?> namedFieldValues) =>
-    LiteralRecordExpression._(true, positionalFieldValues, namedFieldValues);
-
 /// Represents a literal value in Dart source code.
 ///
 /// For example, `LiteralExpression('null')` should emit `null`.
@@ -146,11 +120,6 @@ class LiteralExpression extends Expression {
 
   @override
   String toString() => literal;
-}
-
-class LiteralSpreadExpression extends LiteralExpression {
-  LiteralSpreadExpression._(bool nullAware)
-      : super._('...${nullAware ? '?' : ''}');
 }
 
 class LiteralListExpression extends Expression {
@@ -205,25 +174,4 @@ class LiteralMapExpression extends Expression {
 
   @override
   String toString() => '{$values}';
-}
-
-class LiteralRecordExpression extends Expression {
-  @override
-  final bool isConst;
-  final List<Object?> positionalFieldValues;
-  final Map<String, Object?> namedFieldValues;
-
-  const LiteralRecordExpression._(
-      this.isConst, this.positionalFieldValues, this.namedFieldValues);
-
-  @override
-  R accept<R>(ExpressionVisitor<R> visitor, [R? context]) =>
-      visitor.visitLiteralRecordExpression(this, context);
-
-  @override
-  String toString() {
-    final allFields = positionalFieldValues.map((v) => v.toString()).followedBy(
-        namedFieldValues.entries.map((e) => '${e.key}: ${e.value}'));
-    return '(${allFields.join(', ')})';
-  }
 }

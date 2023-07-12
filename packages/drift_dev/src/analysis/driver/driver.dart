@@ -56,7 +56,6 @@ class DriftAnalysisDriver {
   final DriftBackend backend;
   final DriftAnalysisCache cache = DriftAnalysisCache();
   final DriftOptions options;
-  final bool _isTesting;
 
   late final TypeMapping typeMapping = TypeMapping(this);
   late final ElementDeserializer deserializer = ElementDeserializer(this);
@@ -65,8 +64,7 @@ class DriftAnalysisDriver {
 
   KnownDriftTypes? _knownTypes;
 
-  DriftAnalysisDriver(this.backend, this.options, {bool isTesting = false})
-      : _isTesting = isTesting;
+  DriftAnalysisDriver(this.backend, this.options);
 
   SqlEngine newSqlEngine() {
     return SqlEngine(
@@ -157,16 +155,12 @@ class DriftAnalysisDriver {
   }
 
   /// Runs the first step (element discovery) on a file with the given [uri].
-  Future<FileState> prepareFileForAnalysis(
-    Uri uri, {
-    bool needsDiscovery = true,
-    bool warnIfFileDoesntExist = true,
-  }) async {
+  Future<FileState> prepareFileForAnalysis(Uri uri,
+      {bool needsDiscovery = true}) async {
     var known = cache.knownFiles[uri] ?? cache.notifyFileChanged(uri);
 
     if (known.discovery == null && needsDiscovery) {
-      await DiscoverStep(this, known)
-          .discover(warnIfFileDoesntExist: warnIfFileDoesntExist);
+      await DiscoverStep(this, known).discover();
       cache.postFileDiscoveryResults(known);
 
       // todo: Mark elements that need to be analyzed again
@@ -189,13 +183,6 @@ class DriftAnalysisDriver {
               ),
             );
           }
-        }
-      } else if (state is DiscoveredDartLibrary) {
-        for (final import in state.importDependencies) {
-          // We might import a generated file that doesn't exist yet, that
-          // should not be a user-visible error. Users will notice because the
-          // import is reported as an error by the analyzer either way.
-          await prepareFileForAnalysis(import, warnIfFileDoesntExist: false);
         }
       }
     }
@@ -220,8 +207,6 @@ class DriftAnalysisDriver {
         } catch (e, s) {
           if (e is! CouldNotResolveElementException) {
             backend.log.warning('Could not analyze ${discovered.ownId}', e, s);
-
-            if (_isTesting) rethrow;
           }
         }
       }

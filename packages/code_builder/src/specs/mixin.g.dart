@@ -8,8 +8,6 @@ part of 'mixin.dart';
 
 class _$Mixin extends Mixin {
   @override
-  final bool base;
-  @override
   final BuiltList<Expression> annotations;
   @override
   final BuiltList<String> docs;
@@ -30,8 +28,7 @@ class _$Mixin extends Mixin {
       (new MixinBuilder()..update(updates)).build() as _$Mixin;
 
   _$Mixin._(
-      {required this.base,
-      required this.annotations,
+      {required this.annotations,
       required this.docs,
       this.on,
       required this.implements,
@@ -40,7 +37,6 @@ class _$Mixin extends Mixin {
       required this.fields,
       required this.name})
       : super._() {
-    BuiltValueNullFieldError.checkNotNull(base, r'Mixin', 'base');
     BuiltValueNullFieldError.checkNotNull(annotations, r'Mixin', 'annotations');
     BuiltValueNullFieldError.checkNotNull(docs, r'Mixin', 'docs');
     BuiltValueNullFieldError.checkNotNull(implements, r'Mixin', 'implements');
@@ -61,7 +57,6 @@ class _$Mixin extends Mixin {
   bool operator ==(Object other) {
     if (identical(other, this)) return true;
     return other is Mixin &&
-        base == other.base &&
         annotations == other.annotations &&
         docs == other.docs &&
         on == other.on &&
@@ -74,24 +69,23 @@ class _$Mixin extends Mixin {
 
   @override
   int get hashCode {
-    var _$hash = 0;
-    _$hash = $jc(_$hash, base.hashCode);
-    _$hash = $jc(_$hash, annotations.hashCode);
-    _$hash = $jc(_$hash, docs.hashCode);
-    _$hash = $jc(_$hash, on.hashCode);
-    _$hash = $jc(_$hash, implements.hashCode);
-    _$hash = $jc(_$hash, types.hashCode);
-    _$hash = $jc(_$hash, methods.hashCode);
-    _$hash = $jc(_$hash, fields.hashCode);
-    _$hash = $jc(_$hash, name.hashCode);
-    _$hash = $jf(_$hash);
-    return _$hash;
+    return $jf($jc(
+        $jc(
+            $jc(
+                $jc(
+                    $jc(
+                        $jc($jc($jc(0, annotations.hashCode), docs.hashCode),
+                            on.hashCode),
+                        implements.hashCode),
+                    types.hashCode),
+                methods.hashCode),
+            fields.hashCode),
+        name.hashCode));
   }
 
   @override
   String toString() {
     return (newBuiltValueToStringHelper(r'Mixin')
-          ..add('base', base)
           ..add('annotations', annotations)
           ..add('docs', docs)
           ..add('on', on)
@@ -106,18 +100,6 @@ class _$Mixin extends Mixin {
 
 class _$MixinBuilder extends MixinBuilder {
   _$Mixin? _$v;
-
-  @override
-  bool get base {
-    _$this;
-    return super.base;
-  }
-
-  @override
-  set base(bool base) {
-    _$this;
-    super.base = base;
-  }
 
   @override
   ListBuilder<Expression> get annotations {
@@ -220,7 +202,6 @@ class _$MixinBuilder extends MixinBuilder {
   MixinBuilder get _$this {
     final $v = _$v;
     if ($v != null) {
-      super.base = $v.base;
       super.annotations = $v.annotations.toBuilder();
       super.docs = $v.docs.toBuilder();
       super.on = $v.on;
@@ -253,8 +234,6 @@ class _$MixinBuilder extends MixinBuilder {
     try {
       _$result = _$v ??
           new _$Mixin._(
-              base:
-                  BuiltValueNullFieldError.checkNotNull(base, r'Mixin', 'base'),
               annotations: annotations.build(),
               docs: docs.build(),
               on: on,
@@ -291,4 +270,4 @@ class _$MixinBuilder extends MixinBuilder {
   }
 }
 
-// ignore_for_file: deprecated_member_use_from_same_package,type=lint
+// ignore_for_file: always_put_control_body_on_new_line,always_specify_types,annotate_overrides,avoid_annotating_with_dynamic,avoid_as,avoid_catches_without_on_clauses,avoid_returning_this,deprecated_member_use_from_same_package,lines_longer_than_80_chars,no_leading_underscores_for_local_identifiers,omit_local_variable_types,prefer_expression_function_bodies,sort_constructors_first,test_types_in_equals,unnecessary_const,unnecessary_new,unnecessary_lambdas

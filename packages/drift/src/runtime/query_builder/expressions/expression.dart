@@ -1,6 +1,6 @@
 part of '../query_builder.dart';
 
-const _equality = ListEquality<Object?>();
+const _equality = ListEquality();
 
 /// Base class for everything that can be used as a function parameter in sql.
 ///

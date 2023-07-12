@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of protobuf;
+part of '../../protobuf.dart';
 
 class _ExtensionFieldSet {
   final _FieldSet _parent;
@@ -12,7 +12,7 @@ class _ExtensionFieldSet {
 
   _ExtensionFieldSet(this._parent);
 
-  Extension? _getInfoOrNull(int? tagNumber) => _info[tagNumber];
+  Extension? _getInfoOrNull(int tagNumber) => _info[tagNumber];
 
   dynamic _getFieldOrDefault(Extension fi) {
     if (fi.isRepeated) return _getList(fi);
@@ -20,7 +20,7 @@ class _ExtensionFieldSet {
     // TODO(skybrian) seems unnecessary to add info?
     // I think this was originally here for repeated extensions.
     _addInfoUnchecked(fi);
-    var value = _getFieldOrNull(fi);
+    final value = _getFieldOrNull(fi);
     if (value == null) {
       _checkNotInUnknown(fi);
       return fi.makeDefault!();
@@ -29,7 +29,7 @@ class _ExtensionFieldSet {
   }
 
   bool _hasField(int tagNumber) {
-    var value = _values[tagNumber];
+    final value = _values[tagNumber];
     if (value == null) return false;
     if (value is List) return value.isNotEmpty;
     return true;
@@ -39,28 +39,28 @@ class _ExtensionFieldSet {
   ///
   /// If it doesn't exist, creates the list and saves the extension.
   /// Suitable for public API and decoders.
-  List<T?> _ensureRepeatedField<T>(Extension<T?> fi) {
+  List<T> _ensureRepeatedField<T>(Extension<T> fi) {
     assert(!_isReadOnly);
     assert(fi.isRepeated);
     assert(fi.extendee == '' || fi.extendee == _parent._messageName);
 
-    var list = _values[fi.tagNumber];
-    if (list != null) return list as List<T>;
+    final list = _values[fi.tagNumber];
+    if (list != null) return list;
 
-    return _addInfoAndCreateList(fi) as List<T?>;
+    return _addInfoAndCreateList(fi);
   }
 
-  List<T?> _getList<T>(Extension<T?> fi) {
-    var value = _values[fi.tagNumber];
-    if (value != null) return value as List<T>;
+  List<T> _getList<T>(Extension<T> fi) {
+    final value = _values[fi.tagNumber];
+    if (value != null) return value;
     _checkNotInUnknown(fi);
     if (_isReadOnly) return List<T>.unmodifiable(const []);
-    return _addInfoAndCreateList(fi) as List<T?>;
+    return _addInfoAndCreateList<T>(fi);
   }
 
-  List _addInfoAndCreateList(Extension fi) {
+  List<T> _addInfoAndCreateList<T>(Extension<T> fi) {
     _validateInfo(fi);
-    var newList = fi._createRepeatedField(_parent._message!);
+    final newList = fi._createRepeatedField(_parent._message!);
     _addInfoUnchecked(fi);
     _setFieldUnchecked(fi, newList);
     return newList;
@@ -76,14 +76,17 @@ class _ExtensionFieldSet {
   void _clearField(Extension fi) {
     _ensureWritable();
     _validateInfo(fi);
-    if (_parent._hasObservers) _parent._eventPlugin!.beforeClearField(fi);
+    final eventPlugin = _parent._eventPlugin;
+    if (eventPlugin != null && eventPlugin.hasObservers) {
+      eventPlugin.beforeClearField(fi);
+    }
     _values.remove(fi.tagNumber);
   }
 
   /// Sets a value for a non-repeated extension that has already been added.
   /// Does error-checking.
   void _setField(int tagNumber, value) {
-    var fi = _getInfoOrNull(tagNumber);
+    final fi = _getInfoOrNull(tagNumber);
     if (fi == null) {
       throw ArgumentError(
           'tag $tagNumber not defined in $_parent._messageName');
@@ -113,7 +116,9 @@ class _ExtensionFieldSet {
   }
 
   void _ensureWritable() {
-    if (_isReadOnly) frozenMessageModificationHandler(_parent._messageName);
+    if (_isReadOnly) {
+      _throwFrozenMessageModificationError(_parent._messageName);
+    }
   }
 
   void _validateInfo(Extension fi) {
@@ -129,8 +134,9 @@ class _ExtensionFieldSet {
   }
 
   void _setFieldUnchecked(Extension fi, value) {
-    if (_parent._hasObservers) {
-      _parent._eventPlugin!.beforeSetField(fi, value);
+    final eventPlugin = _parent._eventPlugin;
+    if (eventPlugin != null && eventPlugin.hasObservers) {
+      eventPlugin.beforeSetField(fi, value);
     }
     // If there was already an unknown field with the same tag number,
     // overwrite it.
@@ -155,14 +161,14 @@ class _ExtensionFieldSet {
   /// Repeated fields are copied.
   /// Extensions cannot contain map fields.
   void _shallowCopyValues(_ExtensionFieldSet original) {
-    for (var tagNumber in original._tagNumbers) {
-      var extension = original._getInfoOrNull(tagNumber)!;
+    for (final tagNumber in original._tagNumbers) {
+      final extension = original._getInfoOrNull(tagNumber)!;
       _addInfoUnchecked(extension);
 
       final value = original._getFieldOrNull(extension);
       if (value == null) continue;
       if (extension.isRepeated) {
-        assert(value is PbListBase);
+        assert(value is PbList);
         _ensureRepeatedField(extension).addAll(value);
       } else {
         _setFieldUnchecked(extension, value);
@@ -173,28 +179,25 @@ class _ExtensionFieldSet {
   void _markReadOnly() {
     if (_isReadOnly) return;
     _isReadOnly = true;
-    for (var field in _info.values) {
+    for (final field in _info.values) {
       if (field.isRepeated) {
-        final entries = _values[field.tagNumber];
-        if (entries == null) continue;
-        if (field.isGroupOrMessage) {
-          for (var subMessage in entries as List<GeneratedMessage>) {
-            subMessage.freeze();
-          }
-        }
-        _values[field.tagNumber] = entries.toFrozenPbList();
+        final entriesDynamic = _values[field.tagNumber];
+        if (entriesDynamic == null) continue;
+        final PbList entries = entriesDynamic;
+        entries.freeze();
       } else if (field.isGroupOrMessage) {
         final entry = _values[field.tagNumber];
         if (entry != null) {
-          (entry as GeneratedMessage).freeze();
+          final GeneratedMessage msg = entry;
+          msg.freeze();
         }
       }
     }
   }
 
   void _checkNotInUnknown(Extension extension) {
-    if (_parent._hasUnknownFields &&
-        _parent._unknownFields!.hasField(extension.tagNumber)) {
+    final unknownFields = _parent._unknownFields;
+    if (unknownFields != null && unknownFields.hasField(extension.tagNumber)) {
       throw StateError(
           'Trying to get $extension that is present as an unknown field. '
           'Parse the message with this extension in the extension registry or '

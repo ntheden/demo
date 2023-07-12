@@ -2,11 +2,14 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of protobuf;
+part of '../../protobuf.dart';
 
 /// An object representing a protobuf message field.
 class FieldInfo<T> {
-  FrozenPbList<T>? _emptyList;
+  /// Cached read-only empty list for this field type. For non-repeated fields
+  /// this is always `null`. Otherwise it starts as `null` and gets initialized
+  /// in `readonlyDefault`.
+  PbList<T>? _emptyList;
 
   /// Name of this field as the `json_name` reported by protoc.
   ///
@@ -67,7 +70,7 @@ class FieldInfo<T> {
 
   /// Constructs the default value of a field.
   ///
-  /// For repeated fields, only used when the `check` property is `null`.
+  /// For repeated fields, only used when the [check] property is `null`.
   final MakeDefaultFunc? makeDefault;
 
   /// Creates an empty message or group when decoding a message.
@@ -90,7 +93,7 @@ class FieldInfo<T> {
   /// Only available in enum fields.
   final ValueOfFunc? valueOf;
 
-  /// Function to verify when adding items to a repeated field.
+  /// Function to verify items when adding to a repeated field.
   ///
   /// Only available in repeated fields.
   final CheckFunc<T>? check;
@@ -156,7 +159,7 @@ class FieldInfo<T> {
   /// [GeneratedMessage.getField], doesn't create a repeated field.
   dynamic get readonlyDefault {
     if (isRepeated) {
-      return _emptyList ??= FrozenPbList._([]);
+      return _emptyList ??= PbList.unmodifiable();
     }
     return makeDefault!();
   }
@@ -169,11 +172,11 @@ class FieldInfo<T> {
 
     if (!isRepeated) {
       // A required message: recurse.
-      GeneratedMessage message = value;
+      final GeneratedMessage message = value;
       return message._fieldSet._hasRequiredValues();
     }
 
-    List<GeneratedMessage> list = value;
+    final List<GeneratedMessage> list = value;
     if (list.isEmpty) return true;
 
     // For message types that (recursively) contain no required fields,
@@ -192,10 +195,10 @@ class FieldInfo<T> {
       // primitive and present
     } else if (!isRepeated) {
       // Required message/group: recurse.
-      GeneratedMessage message = value;
+      final GeneratedMessage message = value;
       message._fieldSet._appendInvalidFields(problems, '$prefix$name.');
     } else {
-      final list = value as List<GeneratedMessage>;
+      final List<GeneratedMessage> list = value;
       if (list.isEmpty) return;
 
       // For message types that (recursively) contain no required fields,
@@ -204,7 +207,7 @@ class FieldInfo<T> {
 
       // Recurse on each item in the list.
       var position = 0;
-      for (var message in list) {
+      for (final message in list) {
         message._fieldSet
             ._appendInvalidFields(problems, '$prefix$name[$position].');
         position++;
@@ -216,7 +219,7 @@ class FieldInfo<T> {
   ///
   /// Delegates actual list creation to the message, so that it can
   /// be overridden by a mixin.
-  List<T?> _createRepeatedField(GeneratedMessage m) {
+  List<T> _createRepeatedField(GeneratedMessage m) {
     assert(isRepeated);
     return m.createRepeatedField<T>(tagNumber, this);
   }
@@ -229,7 +232,7 @@ class FieldInfo<T> {
 
   /// Convenience method to thread this FieldInfo's reified type parameter to
   /// _FieldSet._ensureRepeatedField.
-  List<T?> _ensureRepeatedField(BuilderInfo meta, _FieldSet fs) {
+  List<T> _ensureRepeatedField(BuilderInfo meta, _FieldSet fs) {
     return fs._ensureRepeatedField<T>(meta, this);
   }
 
@@ -244,6 +247,7 @@ String _unCamelCase(String name) {
       _upperCase, (match) => '_${match.group(0)!.toLowerCase()}');
 }
 
+/// A [FieldInfo] subclass for protobuf `map` fields.
 class MapFieldInfo<K, V> extends FieldInfo<PbMap<K, V>?> {
   /// Key type of the map. Per proto2 and proto3 specs, this needs to be an
   /// integer type or `string`, and the type cannot be `repeated`.
@@ -276,8 +280,7 @@ class MapFieldInfo<K, V> extends FieldInfo<PbMap<K, V>?> {
       {ProtobufEnum? defaultEnumValue,
       String? protoName})
       : super(name, tagNumber, index, type,
-            defaultOrMaker: () =>
-                PbMap<K, V>(keyFieldType, valueFieldType, mapEntryBuilderInfo),
+            defaultOrMaker: () => PbMap<K, V>(keyFieldType, valueFieldType),
             defaultEnumValue: defaultEnumValue,
             protoName: protoName) {
     ArgumentError.checkNotNull(name, 'name');

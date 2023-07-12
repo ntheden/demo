@@ -12,13 +12,12 @@ import 'models.dart';
 part 'db.g.dart';
 
 class MessageEntry {
-  final Npub npub; // public key in nostr event
   final DbEvent dbEvent;
   final EncryptedDirectMessage nostrEvent;
   Contact from;
   Contact to;
 
-  MessageEntry(this.npub, this.dbEvent, this.nostrEvent, this.from, this.to);
+  MessageEntry(this.dbEvent, this.nostrEvent, this.from, this.to);
 
   int get fromId => dbEvent.fromContact;
   int get toId => dbEvent.toContact;
@@ -57,18 +56,17 @@ class RelayGroup {
 
 class Contact {
   final DbContact contact;
-  final List<Npub> npubs;
   final List<Relay> relays;
 
-  Contact(this.contact, this.npubs, this.relays);
+  Contact(this.contact, this.relays);
 
   bool get isLocal => contact.isLocal;
   bool get active => contact.active;
   String get name => contact.name;
   String get surname => contact.surname;
   String get username => contact.username;
-  String get pubkey => npubs[0].pubkey; // FIXME
-  String get privkey => npubs[0].privkey;
+  String get pubkey => contact.pubkey;
+  String get privkey => contact.privkey;
   String get npub => hexToBech32('npub', pubkey);
   String get nsec => hexToBech32('nsec', privkey);
   String get address => contact.address;
@@ -86,7 +84,7 @@ class Contact {
     return (StringBuffer('Contact(')
           ..write('id: ${contact.id}, ')
           ..write('name: ${contact.name}, ')
-          ..write('npubs: ${npubs.length}, ')
+          ..write('npub: ${npub}, ')
           ..write(')'))
         .toString();
   }
@@ -104,20 +102,15 @@ class Contact {
 
 class Event {
   final DbEvent event;
-  final Npub npub;
-  final List<Etag> etags;
-  final List<Npub> ptags;
+  // TODO: etags & ptags
 
-  Event(this.event, this.npub, this.etags, this.ptags);
+  Event(this.event);
 
   @override
   String toString() {
     return (StringBuffer('Event(')
           ..write('id: ${event.id}, ')
           ..write('plaintext: ${event.plaintext}, ')
-          ..write('npub: ${npub}, ')
-          ..write('etags: ${etags}, ')
-          ..write('ptags: ${ptags}, ')
           ..write(')'))
         .toString();
   }
@@ -126,13 +119,7 @@ class Event {
 @DriftDatabase(tables: [
   DbContacts,
   DbEvents,
-  Npubs,
-  ContactNpubs,
-  Etags,
-  EventPtags,
-  EventEtags,
   DbRelays,
-  DbRelayGroups,
 ])
 
 class AppDatabase extends _$AppDatabase {
