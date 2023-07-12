@@ -2,9 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of '../../protobuf.dart';
+part of protobuf;
 
-/// A set of unknown fields in a [GeneratedMessage].
 class UnknownFieldSet {
   static final UnknownFieldSet emptyUnknownFieldSet = UnknownFieldSet()
     .._markReadOnly();
@@ -56,7 +55,7 @@ class UnknownFieldSet {
 
   bool mergeFieldFromBuffer(int tag, CodedBufferReader input) {
     _ensureWritable('mergeFieldFromBuffer');
-    final number = getTagFieldNumber(tag);
+    var number = getTagFieldNumber(tag);
     switch (getTagWireType(tag)) {
       case WIRETYPE_VARINT:
         mergeVarintField(number, input.readInt64());
@@ -68,7 +67,7 @@ class UnknownFieldSet {
         mergeLengthDelimitedField(number, input.readBytes());
         return true;
       case WIRETYPE_START_GROUP:
-        final subGroup = input.readUnknownFieldSetGroup(number);
+        var subGroup = input.readUnknownFieldSetGroup(number);
         mergeGroupField(number, subGroup);
         return true;
       case WIRETYPE_END_GROUP:
@@ -84,7 +83,7 @@ class UnknownFieldSet {
   void mergeFromCodedBufferReader(CodedBufferReader input) {
     _ensureWritable('mergeFromCodedBufferReader');
     while (true) {
-      final tag = input.readTag();
+      var tag = input.readTag();
       if (tag == 0 || !mergeFieldFromBuffer(tag, input)) {
         break;
       }
@@ -93,7 +92,7 @@ class UnknownFieldSet {
 
   void mergeFromUnknownFieldSet(UnknownFieldSet other) {
     _ensureWritable('mergeFromUnknownFieldSet');
-    for (final key in other._fields.keys) {
+    for (var key in other._fields.keys) {
       mergeField(key, other._fields[key]!);
     }
   }
@@ -132,14 +131,14 @@ class UnknownFieldSet {
   UnknownFieldSetField _getField(int number) {
     _checkFieldNumber(number);
     if (_isReadOnly) assert(_fields.containsKey(number));
-    return _fields.putIfAbsent(number, UnknownFieldSetField.new);
+    return _fields.putIfAbsent(number, () => UnknownFieldSetField());
   }
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(other) {
     if (other is! UnknownFieldSet) return false;
 
-    final o = other;
+    var o = other;
     return _areMapsEqual(o._fields, _fields);
   }
 
@@ -157,11 +156,11 @@ class UnknownFieldSet {
   String toString() => _toString('');
 
   String _toString(String indent) {
-    final stringBuffer = StringBuffer();
+    var stringBuffer = StringBuffer();
 
-    for (final tag in _sorted(_fields.keys)) {
-      final field = _fields[tag]!;
-      for (final value in field.values) {
+    for (var tag in _sorted(_fields.keys)) {
+      var field = _fields[tag]!;
+      for (var value in field.values) {
         if (value is UnknownFieldSet) {
           stringBuffer
             ..write('$indent$tag: {\n')
@@ -177,14 +176,14 @@ class UnknownFieldSet {
   }
 
   void writeToCodedBufferWriter(CodedBufferWriter output) {
-    for (final entry in _fields.entries) {
-      entry.value.writeTo(entry.key, output);
+    for (var key in _fields.keys) {
+      _fields[key]!.writeTo(key, output);
     }
   }
 
   void _markReadOnly() {
     if (_isReadOnly) return;
-    for (final f in _fields.values) {
+    for (var f in _fields.values) {
       f._markReadOnly();
     }
     _isReadOnly = true;
@@ -192,12 +191,11 @@ class UnknownFieldSet {
 
   void _ensureWritable(String methodName) {
     if (_isReadOnly) {
-      _throwFrozenMessageModificationError('UnknownFieldSet', methodName);
+      frozenMessageModificationHandler('UnknownFieldSet', methodName);
     }
   }
 }
 
-/// An unknown field in a [UnknownFieldSet].
 class UnknownFieldSetField {
   List<List<int>> _lengthDelimited = <List<int>>[];
   List<Int64> _varints = <Int64>[];
@@ -224,10 +222,10 @@ class UnknownFieldSetField {
   }
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(other) {
     if (other is! UnknownFieldSetField) return false;
 
-    final o = other;
+    var o = other;
     if (lengthDelimited.length != o.lengthDelimited.length) return false;
     for (var i = 0; i < lengthDelimited.length; i++) {
       if (!_areListsEqual(o.lengthDelimited[i], lengthDelimited[i])) {
@@ -279,7 +277,7 @@ class UnknownFieldSetField {
       ];
 
   void writeTo(int fieldNumber, CodedBufferWriter output) {
-    void write(int type, value) {
+    void write(type, value) {
       output.writeField(fieldNumber, type, value);
     }
 
@@ -309,4 +307,10 @@ class UnknownFieldSetField {
   void addVarint(Int64 value) {
     varints.add(value);
   }
+
+  bool hasRequiredFields() => false;
+
+  bool isInitialized() => true;
+
+  int get length => values.length;
 }

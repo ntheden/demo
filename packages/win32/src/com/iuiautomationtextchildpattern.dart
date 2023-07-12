@@ -40,45 +40,53 @@ class IUIAutomationTextChildPattern extends IUnknown {
           interface.toInterface(IID_IUIAutomationTextChildPattern));
 
   Pointer<COMObject> get textContainer {
-    final retValuePtr = calloc<COMObject>();
+    final retValuePtr = calloc<Pointer<COMObject>>();
 
-    final hr = ptr.ref.vtable
-        .elementAt(3)
-        .cast<
-            Pointer<
-                NativeFunction<
-                    Int32 Function(Pointer, Pointer<COMObject> container)>>>()
-        .value
-        .asFunction<
-            int Function(Pointer,
-                Pointer<COMObject> container)>()(ptr.ref.lpVtbl, retValuePtr);
+    try {
+      final hr = ptr.ref.vtable
+              .elementAt(3)
+              .cast<
+                  Pointer<
+                      NativeFunction<
+                          Int32 Function(Pointer,
+                              Pointer<Pointer<COMObject>> container)>>>()
+              .value
+              .asFunction<
+                  int Function(
+                      Pointer, Pointer<Pointer<COMObject>> container)>()(
+          ptr.ref.lpVtbl, retValuePtr);
 
-    if (FAILED(hr)) {
+      if (FAILED(hr)) throw WindowsException(hr);
+
+      final retValue = retValuePtr.value;
+      return retValue;
+    } finally {
       free(retValuePtr);
-      throw WindowsException(hr);
     }
-
-    return retValuePtr;
   }
 
   Pointer<COMObject> get textRange {
-    final retValuePtr = calloc<COMObject>();
+    final retValuePtr = calloc<Pointer<COMObject>>();
 
-    final hr = ptr.ref.vtable
-            .elementAt(4)
-            .cast<
-                Pointer<
-                    NativeFunction<
-                        Int32 Function(Pointer, Pointer<COMObject> range)>>>()
-            .value
-            .asFunction<int Function(Pointer, Pointer<COMObject> range)>()(
-        ptr.ref.lpVtbl, retValuePtr);
+    try {
+      final hr = ptr.ref.vtable
+              .elementAt(4)
+              .cast<
+                  Pointer<
+                      NativeFunction<
+                          Int32 Function(
+                              Pointer, Pointer<Pointer<COMObject>> range)>>>()
+              .value
+              .asFunction<
+                  int Function(Pointer, Pointer<Pointer<COMObject>> range)>()(
+          ptr.ref.lpVtbl, retValuePtr);
 
-    if (FAILED(hr)) {
+      if (FAILED(hr)) throw WindowsException(hr);
+
+      final retValue = retValuePtr.value;
+      return retValue;
+    } finally {
       free(retValuePtr);
-      throw WindowsException(hr);
     }
-
-    return retValuePtr;
   }
 }

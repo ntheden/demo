@@ -5,14 +5,14 @@
 import 'dart:async' show StreamController, scheduleMicrotask;
 import 'dart:collection' show UnmodifiableListView;
 
-import '../../../protobuf.dart' show EventPlugin, FieldInfo, GeneratedMessage;
+import '../../../protobuf.dart' show GeneratedMessage, FieldInfo, EventPlugin;
 
-/// Provides a stream of changes to fields in a [GeneratedMessage].
+/// Provides a stream of changes to fields in a GeneratedMessage.
 /// (Experimental.)
 ///
-/// This mixin is enabled via an option in dart_options.proto in
-/// dart-protoc-plugin.
-mixin PbEventMixin {
+/// This mixin is enabled via an option in
+/// dart_options.proto in dart-protoc-plugin.
+abstract class PbEventMixin {
   final eventPlugin = EventBuffer();
 
   /// A stream of changes to fields in the GeneratedMessage.
@@ -26,7 +26,7 @@ mixin PbEventMixin {
   void deliverChanges() => eventPlugin.deliverChanges();
 }
 
-/// A change to a field in a [GeneratedMessage].
+/// A change to a field in a GeneratedMessage.
 class PbFieldChange {
   final GeneratedMessage? message;
   final FieldInfo info;
@@ -54,12 +54,12 @@ class EventBuffer extends EventPlugin {
   @override
   void attach(GeneratedMessage parent) {
     assert(_parent == null);
-    ArgumentError.checkNotNull(parent, 'parent');
+    ArgumentError.checkNotNull(parent, 'newParent');
     _parent = parent;
   }
 
   Stream<List<PbFieldChange>> get changes {
-    final controller = _controller ??= StreamController.broadcast(sync: true);
+    var controller = _controller ??= StreamController.broadcast(sync: true);
     return controller.stream;
   }
 
@@ -67,7 +67,7 @@ class EventBuffer extends EventPlugin {
   bool get hasObservers => _controller != null && _controller!.hasListener;
 
   void deliverChanges() {
-    final records = _buffer;
+    var records = _buffer;
     _buffer = null;
     if (records != null && hasObservers) {
       _controller!.add(UnmodifiableListView<PbFieldChange>(records));
@@ -84,7 +84,7 @@ class EventBuffer extends EventPlugin {
   }
 
   @override
-  void beforeSetField(FieldInfo fi, Object? newValue) {
+  void beforeSetField(FieldInfo fi, newValue) {
     var oldValue = _parent!.getFieldOrNull(fi.tagNumber);
     oldValue ??= fi.readonlyDefault;
     if (identical(oldValue, newValue)) return;
@@ -93,9 +93,9 @@ class EventBuffer extends EventPlugin {
 
   @override
   void beforeClearField(FieldInfo fi) {
-    final oldValue = _parent!.getFieldOrNull(fi.tagNumber);
+    var oldValue = _parent!.getFieldOrNull(fi.tagNumber);
     if (oldValue == null) return;
-    final newValue = fi.readonlyDefault;
+    var newValue = fi.readonlyDefault;
     addEvent(PbFieldChange(_parent, fi, oldValue, newValue));
   }
 }

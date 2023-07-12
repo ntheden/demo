@@ -4,26 +4,20 @@
 
 // ignore_for_file: non_constant_identifier_names
 
-part of '../../protobuf.dart';
+part of protobuf;
 
-/// Type of an empty message builder.
 typedef CreateBuilderFunc = GeneratedMessage Function();
-
-/// Type of a function that creates the default value of a protobuf field.
 typedef MakeDefaultFunc = Function();
-
-/// Type of a function that makes an enum integer value to corresponding
-/// [ProtobufEnum] value.
 typedef ValueOfFunc = ProtobufEnum? Function(int value);
 
 /// The base class for all protobuf message types.
 ///
-/// The protoc plugin generates subclasses providing type-specific properties
-/// and methods.
+/// The protoc plugin generates subclasses providing type-specific
+/// properties and methods.
 ///
 /// Public properties and methods added here should also be added to
-/// `GeneratedMessage_reservedNames` and should be unlikely to be used in a
-/// proto file.
+/// GeneratedMessage_reservedNames and should be unlikely to be used in
+/// a proto file.
 abstract class GeneratedMessage {
   _FieldSet? __fieldSet;
 
@@ -50,12 +44,6 @@ abstract class GeneratedMessage {
   GeneratedMessage clone();
 
   /// Creates an empty instance of the same message type as this.
-  ///
-  /// This method is useful when you have a value of type [GeneratedMessage] or
-  /// `T extends GeneratedMessage` and you want a new empty message with the
-  /// same message type as the value. If you know the actual message type, it's
-  /// more direct to use the constructor, and this method creates the same
-  /// message as the message's constructor.
   GeneratedMessage createEmptyInstance();
 
   UnknownFieldSet get unknownFields => _fieldSet._ensureUnknownFields();
@@ -84,6 +72,8 @@ abstract class GeneratedMessage {
   /// be shared with the corresponding list in `this`.
   ///
   /// Similarly for map fields, the maps will be copied, but share the elements.
+  // TODO(nichite, sigurdm): Consider returning an actual builder object that
+  // lazily creates builders.
   GeneratedMessage toBuilder() {
     final result = createEmptyInstance();
     result._fieldSet._shallowCopyValues(_fieldSet);
@@ -117,12 +107,15 @@ abstract class GeneratedMessage {
   /// unset fields.
   void clear() => _fieldSet._clear();
 
+  // TODO(antonm): move to getters.
   int? getTagNumber(String fieldName) => info_.tagNumber(fieldName);
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is GeneratedMessage && _fieldSet._equals(other._fieldSet);
+    return other is GeneratedMessage
+        ? _fieldSet._equals(other._fieldSet)
+        : false;
   }
 
   /// Calculates a hash code based on the contents of the protobuf.
@@ -148,22 +141,22 @@ abstract class GeneratedMessage {
   /// This generates the same output as [toString], but can be used by mixins
   /// to compose debug strings with additional information.
   String toDebugString() {
-    final out = StringBuffer();
+    var out = StringBuffer();
     _fieldSet.writeString(out, '');
     return out.toString();
   }
 
   void check() {
     if (!isInitialized()) {
-      final invalidFields = <String>[];
+      var invalidFields = <String>[];
       _fieldSet._appendInvalidFields(invalidFields, '');
-      final missingFields = (invalidFields..sort()).join(', ');
+      var missingFields = (invalidFields..sort()).join(', ');
       throw StateError('Message missing required fields: $missingFields');
     }
   }
 
   Uint8List writeToBuffer() {
-    final out = CodedBufferWriter();
+    var out = CodedBufferWriter();
     writeToCodedBufferWriter(out);
     return out.toBuffer();
   }
@@ -187,7 +180,7 @@ abstract class GeneratedMessage {
   ///   the existing sub-message.
   void mergeFromBuffer(List<int> input,
       [ExtensionRegistry extensionRegistry = ExtensionRegistry.EMPTY]) {
-    final codedInput = CodedBufferReader(input);
+    var codedInput = CodedBufferReader(input);
     final meta = _fieldSet._meta;
     _mergeFromCodedBufferReader(meta, _fieldSet, codedInput, extensionRegistry);
     codedInput.checkLastTagWas(0);
@@ -277,12 +270,12 @@ abstract class GeneratedMessage {
     /// This is a slight regression on the Dart VM.
     /// TODO(skybrian) we could skip the reviver if we're running
     /// on the Dart VM for a slight speedup.
-    final Map<String, dynamic> jsonMap =
-        jsonDecode(data, reviver: _emptyReviver);
+    final jsonMap =
+        jsonDecode(data, reviver: _emptyReviver) as Map<String, dynamic>;
     _mergeFromJsonMap(_fieldSet, jsonMap, extensionRegistry);
   }
 
-  static Object? _emptyReviver(Object? k, Object? v) => v;
+  static dynamic _emptyReviver(k, v) => v;
 
   /// Merges field values from a JSON object represented as a Dart map.
   ///
@@ -296,7 +289,7 @@ abstract class GeneratedMessage {
   ///
   /// The backing [List] will be created if necessary.
   /// If the list already exists, the old extension won't be overwritten.
-  void addExtension(Extension extension, Object? value) {
+  void addExtension(Extension extension, var value) {
     if (!extension.isRepeated) {
       throw ArgumentError(
           'Cannot add to a non-repeated field (use setExtension())');
@@ -306,7 +299,9 @@ abstract class GeneratedMessage {
 
   /// Clears an extension field and also removes the extension.
   void clearExtension(Extension extension) {
-    _fieldSet._extensions?._clearFieldAndInfo(extension);
+    if (_fieldSet._hasExtensions) {
+      _fieldSet._extensions!._clearFieldAndInfo(extension);
+    }
   }
 
   /// Clears the contents of a given field.
@@ -315,8 +310,6 @@ abstract class GeneratedMessage {
   /// The tagNumber should be a valid tag or extension.
   void clearField(int tagNumber) => _fieldSet._clearField(tagNumber);
 
-  /// For generated code only.
-  /// @nodoc
   int $_whichOneof(int oneofIndex) => _fieldSet._oneofCases![oneofIndex] ?? 0;
 
   bool extensionsAreInitialized() => _fieldSet._hasRequiredExtensionValues();
@@ -324,8 +317,9 @@ abstract class GeneratedMessage {
   /// Returns the value of [extension].
   ///
   /// If not set, returns the extension's default value.
-  dynamic getExtension(Extension extension) =>
-      _fieldSet._ensureExtensions()._getFieldOrDefault(extension);
+  dynamic getExtension(Extension extension) {
+    return _fieldSet._ensureExtensions()._getFieldOrDefault(extension);
+  }
 
   /// Returns the value of the field associated with [tagNumber], or the
   /// default value if it is not set.
@@ -336,13 +330,15 @@ abstract class GeneratedMessage {
   /// Mixins may override this method to change the List type. To ensure
   /// that the protobuf can be encoded correctly, the returned List must
   /// validate all items added to it. This can most easily be done
-  /// using the [FieldInfo.check] function.
-  List<T> createRepeatedField<T>(int tagNumber, FieldInfo<T> fi) =>
-      PbList<T>(check: fi.check!);
+  /// using the FieldInfo.check function.
+  List<T> createRepeatedField<T>(int tagNumber, FieldInfo<T> fi) {
+    return PbList<T>(check: fi.check!);
+  }
 
   /// Creates a Map representing a map field.
-  Map<K, V> createMapField<K, V>(int tagNumber, MapFieldInfo<K, V> fi) =>
-      PbMap<K, V>(fi.keyFieldType, fi.valueFieldType);
+  Map<K, V> createMapField<K, V>(int tagNumber, MapFieldInfo<K, V> fi) {
+    return PbMap<K, V>(fi.keyFieldType, fi.valueFieldType);
+  }
 
   /// Returns the value of a field, ignoring any defaults.
   ///
@@ -361,7 +357,8 @@ abstract class GeneratedMessage {
 
   /// Returns `true` if a value of [extension] is present.
   bool hasExtension(Extension extension) =>
-      _fieldSet._extensions?._getFieldOrNull(extension) != null;
+      _fieldSet._hasExtensions &&
+      _fieldSet._extensions!._getFieldOrNull(extension) != null;
 
   /// Whether this message has a field associated with [tagNumber].
   bool hasField(int tagNumber) => _fieldSet._hasField(tagNumber);
@@ -403,75 +400,69 @@ abstract class GeneratedMessage {
   }
 
   /// For generated code only.
-  /// @nodoc
   T $_get<T>(int index, T defaultValue) =>
       _fieldSet._$get<T>(index, defaultValue);
 
   /// For generated code only.
-  /// @nodoc
-  T $_getN<T>(int index) => _fieldSet._$getND(index);
+  T $_getN<T>(int index) {
+    // The implicit downcast at the return is always correct by construction
+    // from the protoc generator. dart2js will omit the implicit downcast when
+    // compiling with `-O3` or higher. We should introduce some way to
+    // communicate that the downcast cannot fail to the other compilers.
+    //
+    // TODO(sra): With NNDB we will need to add 'as T', and a dart2js annotation
+    // (to be implemented) to omit the 'as' check.
+    return _fieldSet._$getND(index);
+  }
 
   /// For generated code only.
-  /// @nodoc
-  T $_ensure<T>(int index) => _fieldSet._$ensure<T>(index);
+  T $_ensure<T>(int index) {
+    return _fieldSet._$ensure<T>(index);
+  }
 
   /// For generated code only.
-  /// @nodoc
   List<T> $_getList<T>(int index) => _fieldSet._$getList<T>(index);
 
   /// For generated code only.
-  /// @nodoc
   Map<K, V> $_getMap<K, V>(int index) => _fieldSet._$getMap<K, V>(this, index);
 
   /// For generated code only.
-  /// @nodoc
   bool $_getB(int index, bool defaultValue) =>
       _fieldSet._$getB(index, defaultValue);
 
   /// For generated code only.
-  /// @nodoc
   bool $_getBF(int index) => _fieldSet._$getBF(index);
 
   /// For generated code only.
-  /// @nodoc
   int $_getI(int index, int defaultValue) =>
       _fieldSet._$getI(index, defaultValue);
 
   /// For generated code only.
-  /// @nodoc
   int $_getIZ(int index) => _fieldSet._$getIZ(index);
 
   /// For generated code only.
-  /// @nodoc
   String $_getS(int index, String defaultValue) =>
       _fieldSet._$getS(index, defaultValue);
 
   /// For generated code only.
-  /// @nodoc
   String $_getSZ(int index) => _fieldSet._$getSZ(index);
 
   /// For generated code only.
-  /// @nodoc
   Int64 $_getI64(int index) => _fieldSet._$getI64(index);
 
   /// For generated code only.
-  /// @nodoc
   bool $_has(int index) => _fieldSet._$has(index);
 
   /// For generated code only.
-  /// @nodoc
   void $_setBool(int index, bool value) => _fieldSet._$set(index, value);
 
   /// For generated code only.
-  /// @nodoc
   void $_setBytes(int index, List<int> value) => _fieldSet._$set(index, value);
 
   /// For generated code only.
-  /// @nodoc
   void $_setString(int index, String value) => _fieldSet._$set(index, value);
 
   /// For generated code only.
-  /// @nodoc
   void $_setFloat(int index, double value) {
     ArgumentError.checkNotNull(value, 'value');
     if (!_isFloat32(value)) {
@@ -481,11 +472,9 @@ abstract class GeneratedMessage {
   }
 
   /// For generated code only.
-  /// @nodoc
   void $_setDouble(int index, double value) => _fieldSet._$set(index, value);
 
   /// For generated code only.
-  /// @nodoc
   void $_setSignedInt32(int index, int value) {
     ArgumentError.checkNotNull(value, 'value');
     if (!_isSigned32(value)) {
@@ -495,7 +484,6 @@ abstract class GeneratedMessage {
   }
 
   /// For generated code only.
-  /// @nodoc
   void $_setUnsignedInt32(int index, int value) {
     ArgumentError.checkNotNull(value, 'value');
     if (!_isUnsigned32(value)) {
@@ -505,7 +493,6 @@ abstract class GeneratedMessage {
   }
 
   /// For generated code only.
-  /// @nodoc
   void $_setInt64(int index, Int64 value) => _fieldSet._$set(index, value);
 
   // Support for generating a read-only default singleton instance.
@@ -518,7 +505,6 @@ abstract class GeneratedMessage {
       _getSingletonMaker(createFn!)._frozenSingletonCreator;
 
   /// For generated code only.
-  /// @nodoc
   static T $_defaultFor<T extends GeneratedMessage>(T Function() createFn) =>
       _getSingletonMaker(createFn)._frozenSingleton;
 
@@ -556,7 +542,6 @@ class PackageName {
   String get prefix => name == '' ? '' : '$name.';
 }
 
-/// Extensions on [GeneratedMessage]s.
 extension GeneratedMessageGenericExtensions<T extends GeneratedMessage> on T {
   /// Apply [updates] to a copy of this message.
   ///

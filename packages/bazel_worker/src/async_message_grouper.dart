@@ -117,7 +117,6 @@ class AsyncMessageGrouper implements MessageGrouper {
       // message)
       return null;
     }
-    return null;
   }
 
   /// Stop listening to the stream for further updates.

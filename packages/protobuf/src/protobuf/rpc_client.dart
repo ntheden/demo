@@ -2,9 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of '../../protobuf.dart';
+part of protobuf;
 
-/// Client side context for [RpcClient]s.
+/// Client side context.
 class ClientContext {
   /// The desired timeout of the RPC call.
   final Duration? timeout;

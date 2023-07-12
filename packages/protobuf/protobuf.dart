@@ -2,16 +2,13 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-/// Runtime library for Dart implementation of [protobufs][1].
-///
-/// [1]: https://developers.google.com/protocol-buffers
-library;
+library protobuf;
 
 import 'dart:collection' show ListBase, MapBase;
 import 'dart:convert'
-    show Utf8Codec, base64Decode, base64Encode, jsonDecode, jsonEncode;
+    show base64Decode, base64Encode, jsonEncode, jsonDecode, Utf8Codec;
 import 'dart:math' as math;
-import 'dart:typed_data' show ByteData, Endian, TypedData, Uint8List;
+import 'dart:typed_data' show TypedData, Uint8List, ByteData, Endian;
 
 import 'package:fixnum/fixnum.dart' show Int64;
 import 'package:meta/meta.dart' show UseResult;
@@ -19,15 +16,13 @@ import 'package:meta/meta.dart' show UseResult;
 import 'src/protobuf/json_parsing_context.dart';
 import 'src/protobuf/permissive_compare.dart';
 import 'src/protobuf/type_registry.dart';
-
 export 'src/protobuf/type_registry.dart' show TypeRegistry;
 
-part 'src/protobuf/annotations.dart';
-part 'src/protobuf/builder_info.dart';
 part 'src/protobuf/coded_buffer.dart';
 part 'src/protobuf/coded_buffer_reader.dart';
 part 'src/protobuf/coded_buffer_writer.dart';
 part 'src/protobuf/consts.dart';
+part 'src/protobuf/builder_info.dart';
 part 'src/protobuf/event_plugin.dart';
 part 'src/protobuf/exceptions.dart';
 part 'src/protobuf/extension.dart';
@@ -42,16 +37,16 @@ part 'src/protobuf/generated_service.dart';
 part 'src/protobuf/json.dart';
 part 'src/protobuf/pb_list.dart';
 part 'src/protobuf/pb_map.dart';
-part 'src/protobuf/proto3_json.dart';
 part 'src/protobuf/protobuf_enum.dart';
+part 'src/protobuf/proto3_json.dart';
+part 'src/protobuf/readonly_message.dart';
 part 'src/protobuf/rpc_client.dart';
 part 'src/protobuf/unknown_field_set.dart';
-part 'src/protobuf/unpack.dart';
 part 'src/protobuf/utils.dart';
+part 'src/protobuf/unpack.dart';
 part 'src/protobuf/wire_format.dart';
 
 // TODO(sra): Use Int64.parse() when available - see http://dartbug.com/21915.
-/// @nodoc
 Int64 parseLongInt(String text) {
   if (text.startsWith('0x')) return Int64.parseHex(text.substring(2));
   if (text.startsWith('+0x')) return Int64.parseHex(text.substring(3));

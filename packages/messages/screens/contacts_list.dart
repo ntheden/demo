@@ -6,6 +6,7 @@ import 'package:nostr/nostr.dart';
 
 import '../components/contacts/contacts_entry.dart';
 import '../components/drawer/index.dart';
+import '../nostr/relays.dart';
 import '../db/crud.dart';
 import '../db/db.dart';
 import '../util/date.dart';
@@ -28,20 +29,20 @@ class ContactsList extends StatefulWidget {
     stream = StreamController<List<DbContact>>();
     stream.addStream(watchAllDbContacts());
     subscription = stream.stream.listen((entries) {
-      makeContactsList().then((_) {
-        _stateObj?.toggleState();
-      });
+      makeContactsList(entries);
+      _stateObj?.toggleState();
     });
   }
 
-  Future<List<Contact>> makeContactsList() async {
-    contacts = await getAllContacts();
+  void makeContactsList(dbContacts) async {
+    List<int> ids = [];
+    dbContacts.forEach((c) => ids.add(c.id));
+    contacts = await getContacts(ids);
     contacts.sort((a, b) {
       String nameA = a.name ?? a.surname ?? a.username ?? "";
       String nameB = b.name ?? b.surname ?? b.username ?? "";
       return nameA.toLowerCase().compareTo(nameB.toLowerCase());
     });
-    return contacts;
   }
 
   @override

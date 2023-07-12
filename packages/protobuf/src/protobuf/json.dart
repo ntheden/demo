@@ -2,15 +2,14 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of '../../protobuf.dart';
+part of protobuf;
 
 Map<String, dynamic> _writeToJsonMap(_FieldSet fs) {
   dynamic convertToMap(dynamic fieldValue, int fieldType) {
-    final baseType = PbFieldType._baseType(fieldType);
+    var baseType = PbFieldType._baseType(fieldType);
 
     if (_isRepeated(fieldType)) {
-      final PbList list = fieldValue;
-      return List.from(list.map((e) => convertToMap(e, baseType)));
+      return List.from(fieldValue.map((e) => convertToMap(e, baseType)));
     }
 
     switch (baseType) {
@@ -26,10 +25,10 @@ Map<String, dynamic> _writeToJsonMap(_FieldSet fs) {
       case PbFieldType._DOUBLE_BIT:
         final value = fieldValue as double;
         if (value.isNaN) {
-          return _nan;
+          return nan;
         }
         if (value.isInfinite) {
-          return value.isNegative ? _negativeInfinity : _infinity;
+          return value.isNegative ? negativeInfinity : infinity;
         }
         if (fieldValue.toInt() == fieldValue) {
           return fieldValue.toInt();
@@ -39,53 +38,49 @@ Map<String, dynamic> _writeToJsonMap(_FieldSet fs) {
         // Encode 'bytes' as a base64-encoded string.
         return base64Encode(fieldValue as List<int>);
       case PbFieldType._ENUM_BIT:
-        final ProtobufEnum enum_ = fieldValue;
-        return enum_.value; // assume |value| < 2^52
+        return fieldValue.value; // assume |value| < 2^52
       case PbFieldType._INT64_BIT:
       case PbFieldType._SINT64_BIT:
       case PbFieldType._SFIXED64_BIT:
         return fieldValue.toString();
       case PbFieldType._UINT64_BIT:
       case PbFieldType._FIXED64_BIT:
-        final Int64 int_ = fieldValue;
-        return int_.toStringUnsigned();
+        return fieldValue.toStringUnsigned();
       case PbFieldType._GROUP_BIT:
       case PbFieldType._MESSAGE_BIT:
-        final GeneratedMessage msg = fieldValue;
-        return msg.writeToJsonMap();
+        return fieldValue.writeToJsonMap();
       default:
-        throw UnsupportedError('Unknown type $fieldType');
+        throw 'Unknown type $fieldType';
     }
   }
 
-  List writeMap(PbMap fieldValue, MapFieldInfo fi) =>
+  List _writeMap(dynamic fieldValue, MapFieldInfo fi) =>
       List.from(fieldValue.entries.map((MapEntry e) => {
             '${PbMap._keyFieldNumber}': convertToMap(e.key, fi.keyFieldType),
             '${PbMap._valueFieldNumber}':
                 convertToMap(e.value, fi.valueFieldType)
           }));
 
-  final result = <String, dynamic>{};
-  for (final fi in fs._infosSortedByTag) {
-    final value = fs._values[fi.index!];
+  var result = <String, dynamic>{};
+  for (var fi in fs._infosSortedByTag) {
+    var value = fs._values[fi.index!];
     if (value == null || (value is List && value.isEmpty)) {
       continue; // It's missing, repeated, or an empty byte array.
     }
     if (_isMapField(fi.type)) {
       result['${fi.tagNumber}'] =
-          writeMap(value, fi as MapFieldInfo<dynamic, dynamic>);
+          _writeMap(value, fi as MapFieldInfo<dynamic, dynamic>);
       continue;
     }
     result['${fi.tagNumber}'] = convertToMap(value, fi.type);
   }
-  final extensions = fs._extensions;
-  if (extensions != null) {
-    for (final tagNumber in _sorted(extensions._tagNumbers)) {
-      final value = extensions._values[tagNumber];
+  if (fs._hasExtensions) {
+    for (var tagNumber in _sorted(fs._extensions!._tagNumbers)) {
+      var value = fs._extensions!._values[tagNumber];
       if (value is List && value.isEmpty) {
         continue; // It's repeated or an empty byte array.
       }
-      final fi = extensions._getInfoOrNull(tagNumber)!;
+      var fi = fs._extensions!._getInfoOrNull(tagNumber)!;
       result['$tagNumber'] = convertToMap(value, fi.type);
     }
   }
@@ -96,10 +91,9 @@ Map<String, dynamic> _writeToJsonMap(_FieldSet fs) {
 // (Called recursively on nested messages.)
 void _mergeFromJsonMap(
     _FieldSet fs, Map<String, dynamic> json, ExtensionRegistry? registry) {
-  fs._ensureWritable();
   final keys = json.keys;
   final meta = fs._meta;
-  for (final key in keys) {
+  for (var key in keys) {
     var fi = meta.byTagAsString[key];
     if (fi == null) {
       if (registry == null) continue; // Unknown tag; skip
@@ -125,7 +119,7 @@ void _appendJsonList(BuilderInfo meta, _FieldSet fs, List jsonList,
   //   for (t1 = J.get$iterator$ax(json), t2 = fi.tagNumber, t3 = fi.type,
   //       t4 = J.getInterceptor$ax(repeated); t1.moveNext$0();)
   for (var i = 0, len = jsonList.length; i < len; i++) {
-    final value = jsonList[i];
+    var value = jsonList[i];
     var convertedValue =
         _convertJsonValue(meta, fs, value, fi.tagNumber, fi.type, registry);
     // In the case of an unknown enum value, the converted value may return
@@ -140,8 +134,8 @@ void _appendJsonMap(BuilderInfo meta, _FieldSet fs, List jsonList,
     MapFieldInfo fi, ExtensionRegistry? registry) {
   final entryMeta = fi.mapEntryBuilderInfo;
   final map = fi._ensureMapField(meta, fs) as PbMap<dynamic, dynamic>;
-  for (final jsonEntryDynamic in jsonList) {
-    final jsonEntry = jsonEntryDynamic as Map<String, dynamic>;
+  for (var jsonEntryDynamic in jsonList) {
+    var jsonEntry = jsonEntryDynamic as Map<String, dynamic>;
     final entryFieldSet = _FieldSet(null, entryMeta, null);
     final convertedKey = _convertJsonValue(
         entryMeta,
@@ -249,12 +243,12 @@ dynamic _convertJsonValue(BuilderInfo meta, _FieldSet fs, value, int tagNumber,
       break;
     case PbFieldType._INT32_BIT:
     case PbFieldType._SINT32_BIT:
+    case PbFieldType._UINT32_BIT:
     case PbFieldType._SFIXED32_BIT:
       if (value is int) return value;
       if (value is String) return int.parse(value);
       expectedType = 'int or stringified int';
       break;
-    case PbFieldType._UINT32_BIT:
     case PbFieldType._FIXED32_BIT:
       int? validatedValue;
       if (value is int) validatedValue = value;
@@ -278,7 +272,7 @@ dynamic _convertJsonValue(BuilderInfo meta, _FieldSet fs, value, int tagNumber,
     case PbFieldType._MESSAGE_BIT:
       if (value is Map) {
         final messageValue = value as Map<String, dynamic>;
-        final subMessage = meta._makeEmptyMessage(tagNumber, registry);
+        var subMessage = meta._makeEmptyMessage(tagNumber, registry);
         _mergeFromJsonMap(subMessage._fieldSet, messageValue, registry);
         return subMessage;
       }

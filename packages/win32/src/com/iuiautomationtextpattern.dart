@@ -91,24 +91,28 @@ class IUIAutomationTextPattern extends IUnknown {
       ptr.ref.lpVtbl, ranges);
 
   Pointer<COMObject> get documentRange {
-    final retValuePtr = calloc<COMObject>();
+    final retValuePtr = calloc<Pointer<COMObject>>();
 
-    final hr = ptr.ref.vtable
-            .elementAt(7)
-            .cast<
-                Pointer<
-                    NativeFunction<
-                        Int32 Function(Pointer, Pointer<COMObject> range)>>>()
-            .value
-            .asFunction<int Function(Pointer, Pointer<COMObject> range)>()(
-        ptr.ref.lpVtbl, retValuePtr);
+    try {
+      final hr = ptr.ref.vtable
+              .elementAt(7)
+              .cast<
+                  Pointer<
+                      NativeFunction<
+                          Int32 Function(
+                              Pointer, Pointer<Pointer<COMObject>> range)>>>()
+              .value
+              .asFunction<
+                  int Function(Pointer, Pointer<Pointer<COMObject>> range)>()(
+          ptr.ref.lpVtbl, retValuePtr);
 
-    if (FAILED(hr)) {
+      if (FAILED(hr)) throw WindowsException(hr);
+
+      final retValue = retValuePtr.value;
+      return retValue;
+    } finally {
       free(retValuePtr);
-      throw WindowsException(hr);
     }
-
-    return retValuePtr;
   }
 
   int get supportedTextSelection {

@@ -1,37 +1,44 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
-import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:nostr/nostr.dart' as nostr;
 
 import '../db/crud.dart';
 import '../db/db.dart' as db;
-import 'network.dart';
 
 class DeferredEvent {
   nostr.Event event;
+  String receiver;
   db.Contact toContact;
 
-  DeferredEvent(this.event, this.toContact);
+  DeferredEvent(this.event, this.receiver, this.toContact);
 }
 
 class Relay {
   final String url;
   final bool read;
   final bool write;
-  final Network network;
   bool _listening = false;
-  bool _connected = false;
   late WebSocketChannel _channel;
   List<int>? supportedNips;
+  List<nostr.Filter> filters = [
+    nostr.Filter(
+      //kinds: [0, 1, 4, 2, 7],
+      kinds: [4],
+      since:
+          1681878751, // TODO: Today minus 30 or something, or based on last received in db
+      limit: 450,
+    )
+  ];
   Map<String, Queue<DeferredEvent>> queues = {};
-  String _subscriptionId = '';
 
   WebSocketChannel get channel => _channel;
 
-  Relay(this.url, this.network, {this.read: true, this.write: true}) {
-    channelConnect(url);
+  Relay(this.url, {this.read: true, this.write: true, List<nostr.Filter>? filters,}) {
+    this.filters = this.filters + (filters ?? []);
+    _channel = channelConnect(url);
+    subscribe();
   }
 
   @override
@@ -44,51 +51,37 @@ class Relay {
         .toString();
   }
 
-  factory Relay.fromDb(db.Relay relay, Network network) {
+  factory Relay.fromDb(db.Relay relay, [filters]) {
     return Relay(
       relay.url,
-      network,
       read: relay.read,
       write: relay.write,
+      filters: filters
     );
   }
 
-  void channelConnect(String host) {
-    if (!host.startsWith(RegExp(r'^(wss?://)'))) {
-      host = 'wss://' + host.split('//').last;
+  static WebSocketChannel channelConnect(String host) {
+    host = host.split('//').last;
+    WebSocketChannel channel;
+    try {
+      // with 'wss' seeing WRONG_VERSION_NUMBER error against some servers
+      channel = WebSocketChannel.connect(Uri.parse('ws://${host}'));
+    } on HandshakeException catch (e) {
+      channel = WebSocketChannel.connect(Uri.parse('wss://${host}'));
     }
-    _channel = IOWebSocketChannel.connect(Uri.parse(host));
-    _connected = true;
+    return channel;
   }
 
   void subscribe() {
     // TODO: query supported nips
-    // TODO: make consistent with listen, like accept filter as arg
-    // and re-subscribe if it changed or something
-    print('$url SUBSCRIBE CALLED');
-    if (read == false ||  network.filters.isEmpty || network.subscriptionId.isEmpty) {
-      print('$url NOT SUBSCRIBING NOW');
-      return;
-    }
-    if (_subscriptionId == network.subscriptionId) {
-      // we already have this subscription
-      print('$url ALREADY HAVE THIS SUBSCRIPTION');
-      return;
-    }
-    if (_subscriptionId.isNotEmpty) {
-      // TODO: cancel previous subscription id
-    }
-    _subscriptionId = network.subscriptionId;
-    List<nostr.Filter> filters = (network.filters.sublist(1) as List<nostr.Filter>);
-    nostr.Request requestWithFilter = nostr.Request(_subscriptionId, filters);
-    print('TO $url: ${requestWithFilter.serialize()}');
+    nostr.Request requestWithFilter =
+        nostr.Request(nostr.generate64RandomHexChars(), filters);
+    print('sending request: ${requestWithFilter.serialize()}');
     _channel.sink.add(requestWithFilter.serialize());
   }
 
   void listen(void Function(dynamic)? func) {
-    print('$url LISTEN CALLED $func');
     if (_listening) {
-      print('$url ALREADY LISTENING');
       return;
     }
     func ??= (data) {
@@ -102,36 +95,21 @@ class Relay {
         // error deserializing. Log it (maybe) and punt
         return;
       }
-      if ([m.type,].contains("EVENT")) {
-        if (network.uniqueIdsReceived.contains(m.message.id)) {
-          return;
-        }
-        network.uniqueIdsReceived.add(m.message.id);
-        storeDirectMessage(m.message);
+      if ([
+        m!.type,
+      ].contains("EVENT")) {
+        storeEvent(m.message);
       }
     };
     _listening = true;
     _channel.stream.listen(
       func,
-      onError: (err) {
-        _listening = false;
-        print('onError: $url');
-        print('$err');
-      },
-      onDone: () {
-        _connected = false;
-        print('onDone: $url');
-      },
+      onError: (err) => _listening = false,
+      onDone: () => _listening = false,
     );
   }
 
-  Future<void> storeDirectMessage(nostr.Event event) async {
-    String? receiver = (event as nostr.EncryptedDirectMessage).receiver;
-    if (receiver == null || !network.recipients.contains(receiver)) {
-      // - null: Filter: event destination (tag p) is not present, required for NIP04
-      // - not in recipient list: filter it
-      return;
-    }
+  Future<void> storeEvent(nostr.Event event) async {
     try {
       db.DbEvent entry = await getEvent(event.id);
       // If it's there then nothing to do
@@ -139,10 +117,15 @@ class Relay {
     } catch (err) {
       // event hasn't been seen/stored
     }
-    db.Contact? toContact = await getContactFromKey(receiver!);
+
+    String? receiver = (event as nostr.EncryptedDirectMessage).receiver;
+    if (receiver == null) {
+      // Filter: event destination (tag p) is not present
+      return;
+    }
+    db.Contact? toContact = await getContactFromNpub(receiver!);
     if (toContact == null || !toContact.isLocal) {
       // TODO: This must be optimized, avoid db lookup every rx
-      print("TODO: receiver pubkey list");
       return;
     }
     print('#################################');
@@ -153,37 +136,38 @@ class Relay {
     print('#################################');
 
     String pubkey = event.pubkey;
-    db.Contact? fromContact = await getContactFromKey(pubkey);
+    db.Contact? fromContact = await getContactFromNpub(pubkey);
     if (fromContact != null) {
-      return receiveBottom(event, fromContact, toContact);
+      return receiveBottom(event, fromContact, toContact, receiver!);
     }
     if (queues.containsKey(pubkey)) {
-      queues[pubkey]?.add(DeferredEvent(event, toContact));
+      queues[pubkey]?.add(DeferredEvent(event, receiver, toContact));
     } else {
       queues[pubkey] = Queue<DeferredEvent>();
-      queues[pubkey]?.add(DeferredEvent(event, toContact));
+      queues[pubkey]?.add(DeferredEvent(event, receiver, toContact));
       // TODO: Look up name from directory
       // TODO: SPAM/DOS Protection
-      createContact(pubkey, "Unnamed",
-          ).then((_) => getContactFromKey(pubkey).then((fromContact) {
+      createContact([pubkey], "Unnamed", DateTime.fromMillisecondsSinceEpoch(event.createdAt * 1000),
+          ).then((_) => getContactFromNpub(pubkey).then((fromContact) {
                 // TODO: batch these
                 Queue<DeferredEvent> q = queues[pubkey]!;
                 while (q.isNotEmpty) {
                   DeferredEvent ev = q.removeFirst();
-                  receiveBottom(ev.event, fromContact!, ev.toContact);
+                  receiveBottom(
+                      ev.event, fromContact!, ev.toContact, ev.receiver);
                 }
               }));
     }
   }
 
   void receiveBottom(nostr.Event event, db.Contact fromContact,
-      db.Contact toContact) async {
+      db.Contact toContact, String receiver) async {
+    db.Npub receiveNpub = await getNpub(receiver);
     String? plaintext = null;
     bool decryptError = false;
-    assert(toContact.privkey.isNotEmpty);
     try {
       plaintext = (event as nostr.EncryptedDirectMessage)
-          .getPlaintext(toContact.privkey);
+          .getPlaintext(receiveNpub.privkey);
     } catch (error) {
       decryptError = true;
     }
@@ -206,7 +190,7 @@ class Relay {
 
   Future<void> sendEvent(nostr.Event event, db.Contact from, db.Contact to,
       [String? plaintext]) async {
-    // we don't await it, but we might want to get confirmation
+    // we don't await it, but we might want to to get confirmation
     send(event.serialize());
   }
 }

@@ -327,8 +327,12 @@ class AssetImage extends AssetBundleImageProvider {
   }
 
   AssetMetadata _chooseVariant(String mainAssetKey, ImageConfiguration config, Iterable<AssetMetadata>? candidateVariants) {
-    if (candidateVariants == null || candidateVariants.isEmpty || config.devicePixelRatio == null) {
+    if (candidateVariants == null) {
       return AssetMetadata(key: mainAssetKey, targetDevicePixelRatio: null, main: true);
+    }
+
+    if (config.devicePixelRatio == null) {
+      return candidateVariants.firstWhere((AssetMetadata variant) => variant.main);
     }
 
     final SplayTreeMap<double, AssetMetadata> candidatesByDevicePixelRatio =

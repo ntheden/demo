@@ -6,7 +6,6 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart' show clampDouble;
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import 'colors.dart';
@@ -246,13 +245,12 @@ class _FlexibleSpaceBarState extends State<FlexibleSpaceBar> {
             constraints.maxHeight > height) {
             height = constraints.maxHeight;
           }
-          final double topPadding = _getCollapsePadding(t, settings);
           children.add(Positioned(
-            top: topPadding,
+            top: _getCollapsePadding(t, settings),
             left: 0.0,
             right: 0.0,
             height: height,
-            child: _FlexibleSpaceHeaderOpacity(
+            child: Opacity(
               // IOS is relying on this semantics node to correctly traverse
               // through the app bar when it is collapsed.
               alwaysIncludeSemantics: true,
@@ -421,34 +419,4 @@ class FlexibleSpaceBarSettings extends InheritedWidget {
         || currentExtent != oldWidget.currentExtent
         || isScrolledUnder != oldWidget.isScrolledUnder;
   }
-}
-
-// We need the child widget to repaint, however both the opacity
-// and potentially `widget.background` can be constant which won't
-// lead to repainting.
-// see: https://github.com/flutter/flutter/issues/127836
-class _FlexibleSpaceHeaderOpacity extends SingleChildRenderObjectWidget {
-  const _FlexibleSpaceHeaderOpacity({required this.opacity, required super.child, required this.alwaysIncludeSemantics});
-
-  final double opacity;
-  final bool alwaysIncludeSemantics;
-
-  @override
-  RenderObject createRenderObject(BuildContext context) {
-    return _RenderFlexibleSpaceHeaderOpacity(opacity: opacity, alwaysIncludeSemantics: alwaysIncludeSemantics);
-  }
-
-  @override
-  void updateRenderObject(BuildContext context, covariant _RenderFlexibleSpaceHeaderOpacity renderObject) {
-    renderObject
-      ..alwaysIncludeSemantics = alwaysIncludeSemantics
-      ..opacity = opacity;
-  }
-}
-
-class _RenderFlexibleSpaceHeaderOpacity extends RenderOpacity {
-  _RenderFlexibleSpaceHeaderOpacity({super.opacity, super.alwaysIncludeSemantics});
-
-  @override
-  bool get isRepaintBoundary => false;
 }

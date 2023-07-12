@@ -9,7 +9,7 @@ import '../components/drawer/index.dart';
 import '../constants/messages.dart';
 import '../db/crud.dart';
 import '../db/db.dart';
-import '../network/network.dart';
+import '../nostr/relays.dart';
 import '../router/delegate.dart';
 import '../util/date.dart';
 import '../util/screen.dart';
@@ -255,9 +255,9 @@ class ChatState extends State<Chat> {
         curve: Curves.easeOut);
   }
 
-  sendMessage(String content) async {
-    Network network = await getNetwork();
-    network.sendMessage(content, from: currentUser, to: peerContact);
+  sendMessage(String content) {
+    Relays relays = getRelays();
+    relays.sendMessage(content, from: currentUser, to: peerContact);
   }
 
   void addMessage(MessageEntry entry) {

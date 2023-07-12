@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of '../../protobuf.dart';
+part of protobuf;
 
 /// Per-message type setup.
 class BuilderInfo {
@@ -27,8 +27,8 @@ class BuilderInfo {
   /// Mapping from [FieldInfo.name]s to [FieldInfo]s.
   final Map<String, FieldInfo> byName = <String, FieldInfo>{};
 
-  /// Mapping from `oneof` field [FieldInfo.tagNumber]s to the their indices in
-  /// [_FieldSet._oneofCases].
+  /// Mapping from [FieldInfo.tagNumber]s to the corresponding `oneof` indices
+  /// (if any).
   final Map<int, int> oneofs = <int, int>{};
 
   /// Whether the message has extension fields.
@@ -64,7 +64,7 @@ class BuilderInfo {
       ValueOfFunc? valueOf,
       List<ProtobufEnum>? enumValues,
       {String? protoName}) {
-    final index = byIndex.length;
+    var index = byIndex.length;
     final fieldInfo = (tagNumber == 0)
         ? FieldInfo.dummy(index)
         : FieldInfo<T>(name, tagNumber, index, fieldType!,
@@ -85,7 +85,7 @@ class BuilderInfo {
       CreateBuilderFunc? valueCreator,
       {ProtobufEnum? defaultEnumValue,
       String? protoName}) {
-    final index = byIndex.length;
+    var index = byIndex.length;
     _addField(MapFieldInfo<K, V>(name, tagNumber, index, PbFieldType.M,
         keyFieldType, valueFieldType, mapEntryBuilderInfo, valueCreator,
         defaultEnumValue: defaultEnumValue, protoName: protoName));
@@ -101,7 +101,7 @@ class BuilderInfo {
       List<ProtobufEnum>? enumValues,
       {ProtobufEnum? defaultEnumValue,
       String? protoName}) {
-    final index = byIndex.length;
+    var index = byIndex.length;
     _addField(FieldInfo<T>.repeated(
         name, tagNumber, index, fieldType, check, subBuilder,
         valueOf: valueOf,
@@ -199,7 +199,7 @@ class BuilderInfo {
   }
 
   void aOM<T extends GeneratedMessage>(int tagNumber, String name,
-      {required T Function() subBuilder, String? protoName}) {
+      {T Function()? subBuilder, String? protoName}) {
     add<T>(
         tagNumber,
         name,
@@ -212,7 +212,7 @@ class BuilderInfo {
   }
 
   void aQM<T extends GeneratedMessage>(int tagNumber, String name,
-      {required T Function() subBuilder, String? protoName}) {
+      {T Function()? subBuilder, String? protoName}) {
     add<T>(
         tagNumber,
         name,
@@ -226,7 +226,7 @@ class BuilderInfo {
 
   // oneof declarations.
   void oo(int oneofIndex, List<int> tags) {
-    for (final tag in tags) {
+    for (var tag in tags) {
       oneofs[tag] = oneofIndex;
     }
   }
@@ -241,13 +241,11 @@ class BuilderInfo {
       List<ProtobufEnum>? enumValues,
       ProtobufEnum? defaultEnumValue,
       PackageName packageName = const PackageName(''),
-      String? protoName,
-      dynamic valueDefaultOrMaker}) {
-    final mapEntryBuilderInfo = BuilderInfo(entryClassName,
-        package: packageName)
+      String? protoName}) {
+    var mapEntryBuilderInfo = BuilderInfo(entryClassName, package: packageName)
       ..add(PbMap._keyFieldNumber, 'key', keyFieldType, null, null, null, null)
-      ..add(PbMap._valueFieldNumber, 'value', valueFieldType,
-          valueDefaultOrMaker, valueCreator, valueOf, enumValues);
+      ..add(PbMap._valueFieldNumber, 'value', valueFieldType, null,
+          valueCreator, valueOf, enumValues);
 
     addMapField<K, V>(tagNumber, name, keyFieldType, valueFieldType,
         mapEntryBuilderInfo, valueCreator,
@@ -257,38 +255,38 @@ class BuilderInfo {
   bool containsTagNumber(int tagNumber) => fieldInfo.containsKey(tagNumber);
 
   dynamic defaultValue(int tagNumber) {
-    final func = makeDefault(tagNumber);
+    var func = makeDefault(tagNumber);
     return func == null ? null : func();
   }
 
   // Returns the field name for a given tag number, for debugging purposes.
   String? fieldName(int tagNumber) {
-    final i = fieldInfo[tagNumber];
+    var i = fieldInfo[tagNumber];
     return i?.name;
   }
 
   int? fieldType(int tagNumber) {
-    final i = fieldInfo[tagNumber];
+    var i = fieldInfo[tagNumber];
     return i?.type;
   }
 
   MakeDefaultFunc? makeDefault(int tagNumber) {
-    final i = fieldInfo[tagNumber];
+    var i = fieldInfo[tagNumber];
     return i?.makeDefault;
   }
 
   CreateBuilderFunc? subBuilder(int tagNumber) {
-    final i = fieldInfo[tagNumber];
+    var i = fieldInfo[tagNumber];
     return i?.subBuilder;
   }
 
   int? tagNumber(String fieldName) {
-    final i = byName[fieldName];
+    var i = byName[fieldName];
     return i?.tagNumber;
   }
 
   ValueOfFunc? valueOfFunc(int tagNumber) {
-    final i = fieldInfo[tagNumber];
+    var i = fieldInfo[tagNumber];
     return i?.valueOf;
   }
 
@@ -303,12 +301,12 @@ class BuilderInfo {
         : qualifiedMessageName.substring(lastDot + 1);
   }
 
-  List<FieldInfo> _computeSortedByTag() =>
-      // Code generator inserts fields in tag order, but it's possible for
-      // user-written code to insert unordered.
-      List<FieldInfo>.from(fieldInfo.values, growable: false)
-        ..sort(
-            (FieldInfo a, FieldInfo b) => a.tagNumber.compareTo(b.tagNumber));
+  List<FieldInfo> _computeSortedByTag() {
+    // TODO(skybrian): perhaps the code generator should insert the FieldInfos
+    // in tag number order, to avoid sorting them?
+    return List<FieldInfo>.from(fieldInfo.values, growable: false)
+      ..sort((FieldInfo a, FieldInfo b) => a.tagNumber.compareTo(b.tagNumber));
+  }
 
   GeneratedMessage _makeEmptyMessage(
       int tagNumber, ExtensionRegistry? extensionRegistry) {
@@ -329,4 +327,15 @@ class BuilderInfo {
     }
     return f!(rawValue);
   }
+}
+
+/// Annotation for marking accessors that belong together.
+class TagNumber {
+  final int tagNumber;
+
+  /// Annotation for marking accessors that belong together.
+  ///
+  /// Allows tooling to associate related accessors. The [tagNumber] is the
+  /// protobuf field tag associated with the annotated accessor.
+  const TagNumber(this.tagNumber);
 }
