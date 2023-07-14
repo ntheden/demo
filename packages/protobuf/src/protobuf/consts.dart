@@ -2,16 +2,16 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of protobuf;
+part of '../../protobuf.dart';
 
 /// Constant string value of `double.infinity.toString()` and the infinity
 /// value recognized by `double.parse(..)`.
-const infinity = 'Infinity';
+const _infinity = 'Infinity';
 
 /// Constant string value of `double.negativeInfinity.toString()` and the
 /// negative infinity value recognized by `double.parse(..)`.
-const negativeInfinity = '-Infinity';
+const _negativeInfinity = '-Infinity';
 
 /// Constant string value of `double.nan.toString()` and the NaN (not a number)
 /// value recognized by `double.parse(..)`.
-const nan = 'NaN';
+const _nan = 'NaN';

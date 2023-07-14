@@ -4,7 +4,7 @@
 
 // ignore_for_file: constant_identifier_names
 
-part of protobuf;
+part of '../../protobuf.dart';
 
 /// Writer used for converting [GeneratedMessage]s into binary
 /// representation.
@@ -64,14 +64,15 @@ class CodedBufferWriter {
     _commitChunk(true);
   }
 
-  void writeField(int fieldNumber, int fieldType, fieldValue) {
+  void writeField(int fieldNumber, int fieldType, Object? fieldValue) {
     final valueType = PbFieldType._baseType(fieldType);
 
     if ((fieldType & PbFieldType._PACKED_BIT) != 0) {
-      if (!fieldValue.isEmpty) {
+      final list = fieldValue as List;
+      if (list.isNotEmpty) {
         _writeTag(fieldNumber, WIRETYPE_LENGTH_DELIMITED);
         final mark = _startLengthDelimited();
-        for (var value in fieldValue) {
+        for (final value in list) {
           _writeValueAs(valueType, value);
         }
         _endLengthDelimited(mark);
@@ -80,17 +81,16 @@ class CodedBufferWriter {
     }
 
     if ((fieldType & PbFieldType._MAP_BIT) != 0) {
-      final keyWireFormat =
-          _wireTypes[_valueTypeIndex(fieldValue.keyFieldType)];
-      final valueWireFormat =
-          _wireTypes[_valueTypeIndex(fieldValue.valueFieldType)];
+      final map = fieldValue as PbMap;
+      final keyWireFormat = _wireTypes[_valueTypeIndex(map.keyFieldType)];
+      final valueWireFormat = _wireTypes[_valueTypeIndex(map.valueFieldType)];
 
-      fieldValue.forEach((key, value) {
+      map.forEach((key, value) {
         _writeTag(fieldNumber, WIRETYPE_LENGTH_DELIMITED);
         final mark = _startLengthDelimited();
         _writeValue(
-            PbMap._keyFieldNumber, fieldValue.keyFieldType, key, keyWireFormat);
-        _writeValue(PbMap._valueFieldNumber, fieldValue.valueFieldType, value,
+            PbMap._keyFieldNumber, map.keyFieldType, key, keyWireFormat);
+        _writeValue(PbMap._valueFieldNumber, map.valueFieldType, value,
             valueWireFormat);
         _endLengthDelimited(mark);
       });
@@ -100,8 +100,9 @@ class CodedBufferWriter {
     final wireFormat = _wireTypes[_valueTypeIndex(valueType)];
 
     if ((fieldType & PbFieldType._REPEATED_BIT) != 0) {
-      for (var i = 0; i < fieldValue.length; i++) {
-        _writeValue(fieldNumber, valueType, fieldValue[i], wireFormat);
+      final list = fieldValue as List;
+      for (var i = 0; i < list.length; i++) {
+        _writeValue(fieldNumber, valueType, list[i], wireFormat);
       }
       return;
     }
@@ -109,7 +110,7 @@ class CodedBufferWriter {
   }
 
   Uint8List toBuffer() {
-    var result = Uint8List(_bytesTotal);
+    final result = Uint8List(_bytesTotal);
     writeTo(result);
     return result;
   }
@@ -235,7 +236,7 @@ class CodedBufferWriter {
   /// of bytes written into the reserved slice space.
   int _startLengthDelimited() {
     _commitSplice();
-    var index = _splices.length;
+    final index = _splices.length;
     // Reserve a space for a splice and use it to record the current number of
     // bytes written so that we can compute the length of data later in
     // _endLengthDelimited.
@@ -267,7 +268,7 @@ class CodedBufferWriter {
       value >>= 7;
     }
     _outputChunk![i++] = value;
-    _bytesTotal += (i - _bytesInChunk);
+    _bytesTotal += i - _bytesInChunk;
     _bytesInChunk = i;
   }
 
@@ -282,7 +283,7 @@ class CodedBufferWriter {
       hi >>= 7;
     }
     _outputChunk![i++] = lo;
-    _bytesTotal += (i - _bytesInChunk);
+    _bytesTotal += i - _bytesInChunk;
     _bytesInChunk = i;
   }
 
@@ -337,10 +338,10 @@ class CodedBufferWriter {
         break;
       case PbFieldType._BYTES_BIT:
         _writeBytesNoTag(
-            value is TypedData ? value : Uint8List.fromList(value));
+            value is Uint8List ? value : Uint8List.fromList(value));
         break;
       case PbFieldType._STRING_BIT:
-        _writeBytesNoTag(_utf8.encode(value));
+        _writeBytesNoTag(_utf8.encoder.convert(value));
         break;
       case PbFieldType._DOUBLE_BIT:
         _writeDouble(value);
@@ -349,9 +350,12 @@ class CodedBufferWriter {
         _writeFloat(value);
         break;
       case PbFieldType._ENUM_BIT:
-        _writeVarint32(value.value & 0xffffffff);
+        final ProtobufEnum enum_ = value;
+        _writeVarint32(enum_.value & 0xffffffff);
         break;
       case PbFieldType._GROUP_BIT:
+        // value is UnknownFieldSet or GeneratedMessage
+        // ignore: avoid_dynamic_calls
         value.writeToCodedBufferWriter(this);
         break;
       case PbFieldType._INT32_BIT:
@@ -386,13 +390,14 @@ class CodedBufferWriter {
         break;
       case PbFieldType._MESSAGE_BIT:
         final mark = _startLengthDelimited();
-        value.writeToCodedBufferWriter(this);
+        final GeneratedMessage msg = value;
+        msg.writeToCodedBufferWriter(this);
         _endLengthDelimited(mark);
         break;
     }
   }
 
-  void _writeBytesNoTag(dynamic value) {
+  void _writeBytesNoTag(Uint8List value) {
     writeInt32NoTag(value.length);
     writeRawBytes(value);
   }
@@ -419,14 +424,14 @@ class CodedBufferWriter {
   /// Has a specialization for Uint8List for performance.
   int _copyInto(Uint8List buffer, int pos, TypedData value) {
     if (value is Uint8List) {
-      var len = value.length;
+      final len = value.length;
       for (var j = 0; j < len; j++) {
         buffer[pos++] = value[j];
       }
       return pos;
     } else {
-      var len = value.lengthInBytes;
-      var u8 = Uint8List.view(
+      final len = value.lengthInBytes;
+      final u8 = Uint8List.view(
           value.buffer, value.offsetInBytes, value.lengthInBytes);
       for (var j = 0; j < len; j++) {
         buffer[pos++] = u8[j];
@@ -445,7 +450,7 @@ class CodedBufferWriter {
   /// where multiplication becomes a floating point multiplication.
   ///
   /// [1] http://supertech.csail.mit.edu/papers/debruijn.pdf
-  int _valueTypeIndex(int powerOf2) {
+  static int _valueTypeIndex(int powerOf2) {
     assert(powerOf2 & (powerOf2 - 1) == 0, '$powerOf2 is not a power of 2');
     return ((0x077CB531 * powerOf2) >> 27) & 31;
   }

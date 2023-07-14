@@ -56,7 +56,7 @@ class MyRouterDelegate extends RouterDelegate<List<RouteSettings>>
         break;
       case '/chats':
         // argument is current user
-        child = ChatsList(routeSettings.arguments as Contact);
+        child = ChatsList(routeSettings.arguments as Contact, key: UniqueKey());
         break;
       case '/contactEdit':
         child = ContactEdit(routeSettings.arguments as Map<String, dynamic>);
@@ -97,10 +97,10 @@ class MyRouterDelegate extends RouterDelegate<List<RouteSettings>>
   }
 
   void pushPage({required String name, dynamic arguments}) {
-    print('@@@@@@@@@@@@@@@@@@@@ pushing page $name');
+    print('pushing page $name');
     pages.removeWhere((page) => page.name == name);
     pages.add(createPage(RouteSettings(name: name, arguments: arguments)));
-    print('@@@@@@@@@@@@@@@@@@@@ pages are $pages');
+    print('pages are $pages');
 
     notifyListeners();
   }

@@ -23,7 +23,7 @@ class MigrateCommand extends MoorCommand {
 
   late final AnalysisContext context;
 
-  MigrateCommand(MoorCli cli) : super(cli);
+  MigrateCommand(DriftDevCli cli) : super(cli);
 
   @override
   String get description => 'Migrate a project from moor to drift';
@@ -44,10 +44,8 @@ class MigrateCommand extends MoorCommand {
     final isRunningFlutter = Platform.executable == 'flutter';
     final formatCommand =
         isRunningFlutter ? 'flutter format .' : 'dart format .';
-    final pubGetCommand = isRunningFlutter ? 'flutter pub get' : 'dart pub get';
-    final buildCommand = isRunningFlutter
-        ? 'flutter pub run build_runner build --delete-conflicting-outputs'
-        : 'dart run build_runner build';
+    final pubGetCommand = 'dart pub get';
+    final buildCommand = 'dart run build_runner build -d';
 
     print('${green.wrap('Done!')} Next steps:');
     print(' - Please check changed files for correctness');

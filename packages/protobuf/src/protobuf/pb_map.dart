@@ -2,8 +2,9 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of protobuf;
+part of '../../protobuf.dart';
 
+/// A [MapBase] implementation used for protobuf `map` fields.
 class PbMap<K, V> extends MapBase<K, V> {
   /// Key type of the map. Per proto2 and proto3 specs, this needs to be an
   /// integer type or `string`, and the type cannot be `repeated`.
@@ -24,15 +25,13 @@ class PbMap<K, V> extends MapBase<K, V> {
 
   bool _isReadonly = false;
 
-  // The provided [info] will be ignored.
-  PbMap(this.keyFieldType, this.valueFieldType, [BuilderInfo? info])
-      : _wrappedMap = <K, V>{};
+  PbMap(this.keyFieldType, this.valueFieldType) : _wrappedMap = <K, V>{};
 
   PbMap.unmodifiable(PbMap other)
       : keyFieldType = other.keyFieldType,
         valueFieldType = other.valueFieldType,
         _wrappedMap = Map.unmodifiable(other._wrappedMap),
-        _isReadonly = other._isReadonly;
+        _isReadonly = true;
 
   @override
   V? operator [](Object? key) => _wrappedMap[key];
@@ -42,15 +41,15 @@ class PbMap<K, V> extends MapBase<K, V> {
     if (_isReadonly) {
       throw UnsupportedError('Attempted to change a read-only map field');
     }
-    _checkNotNull(key);
-    _checkNotNull(value);
+    ArgumentError.checkNotNull(key, 'key');
+    ArgumentError.checkNotNull(value, 'value');
     _wrappedMap[key] = value;
   }
 
   /// A [PbMap] is equal to another [PbMap] with equal key/value
   /// pairs in any order.
   @override
-  bool operator ==(other) {
+  bool operator ==(Object other) {
     if (identical(other, this)) {
       return true;
     }
@@ -96,31 +95,25 @@ class PbMap<K, V> extends MapBase<K, V> {
   }
 
   void _mergeEntry(BuilderInfo mapEntryMeta, CodedBufferReader input,
-      [ExtensionRegistry? registry]) {
-    var length = input.readInt32();
-    var oldLimit = input._currentLimit;
+      ExtensionRegistry registry) {
+    final length = input.readInt32();
+    final oldLimit = input._currentLimit;
     input._currentLimit = input._bufferPos + length;
     final entryFieldSet = _FieldSet(null, mapEntryMeta, null);
-    _mergeFromCodedBufferReader(mapEntryMeta, entryFieldSet, input, registry!);
+    _mergeFromCodedBufferReader(mapEntryMeta, entryFieldSet, input, registry);
     input.checkLastTagWas(0);
     input._currentLimit = oldLimit;
-    var key =
+    final key =
         entryFieldSet._values[0] ?? mapEntryMeta.byIndex[0].makeDefault!();
-    var value =
+    final value =
         entryFieldSet._values[1] ?? mapEntryMeta.byIndex[1].makeDefault!();
     _wrappedMap[key] = value;
-  }
-
-  void _checkNotNull(Object? val) {
-    if (val == null) {
-      throw ArgumentError("Can't add a null to a map field");
-    }
   }
 
   PbMap freeze() {
     _isReadonly = true;
     if (_isGroupOrMessage(valueFieldType)) {
-      for (var subMessage in values as Iterable<GeneratedMessage>) {
+      for (final subMessage in values as Iterable<GeneratedMessage>) {
         subMessage.freeze();
       }
     }

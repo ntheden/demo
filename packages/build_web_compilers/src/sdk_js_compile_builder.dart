@@ -40,11 +40,15 @@ class SdkJsCompileBuilder implements Builder {
   /// The final destination for the compiled JS file.
   final AssetId jsOutputId;
 
+  /// Enables canary features in DDC.
+  final bool canaryFeatures;
+
   SdkJsCompileBuilder({
     required this.sdkKernelPath,
     required String outputPath,
     String? librariesPath,
     String? platformSdk,
+    required this.canaryFeatures,
   })  : platformSdk = platformSdk ?? sdkDir,
         librariesPath = librariesPath ??
             p.join(platformSdk ?? sdkDir, 'lib', 'libraries.json'),
@@ -61,8 +65,8 @@ class SdkJsCompileBuilder implements Builder {
 
   @override
   Future build(BuildStep buildStep) async {
-    await _createDevCompilerModule(
-        buildStep, platformSdk, sdkKernelPath, librariesPath, jsOutputId);
+    await _createDevCompilerModule(buildStep, platformSdk, sdkKernelPath,
+        librariesPath, jsOutputId, canaryFeatures);
   }
 }
 
@@ -73,6 +77,7 @@ Future<void> _createDevCompilerModule(
   String sdkKernelPath,
   String librariesPath,
   AssetId jsOutputId,
+  bool canaryFeatures,
 ) async {
   var scratchSpace = await buildStep.fetchResource(scratchSpaceResource);
   var jsOutputFile = scratchSpace.fileFor(jsOutputId);
@@ -85,6 +90,7 @@ Future<void> _createDevCompilerModule(
       p.join(sdkDir, 'bin', 'snapshots', 'dartdevc.dart.snapshot'),
       '--multi-root-scheme=org-dartlang-sdk',
       '--modules=amd',
+      if (canaryFeatures) '--canary',
       '--module-name=dart_sdk',
       '-o',
       jsOutputFile.path,
@@ -114,7 +120,7 @@ Future<void> _createDevCompilerModule(
   var sourceMapId = jsOutputId.changeExtension(_jsSourceMapExtension);
   var file = scratchSpace.fileFor(sourceMapId);
   var content = await file.readAsString();
-  var json = jsonDecode(content);
+  var json = jsonDecode(content) as Map<String, Object?>;
   json['sources'] = fixSourceMapSources((json['sources'] as List).cast());
   await buildStep.writeAsString(sourceMapId, jsonEncode(json));
 }

@@ -2,7 +2,7 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
-part of protobuf;
+part of '../../protobuf.dart';
 
 /// A collection of [Extension] objects, organized by the message type they
 /// extend.
@@ -15,7 +15,7 @@ class ExtensionRegistry {
 
   /// Stores an [extension] in the registry.
   void add(Extension extension) {
-    var map =
+    final map =
         _extensions.putIfAbsent(extension.extendee, () => <int, Extension>{});
     map[extension.tagNumber] = extension;
   }
@@ -27,13 +27,8 @@ class ExtensionRegistry {
 
   /// Retrieves an extension from the registry that adds tag number [tagNumber]
   /// to the [messageName] message type.
-  Extension? getExtension(String messageName, int tagNumber) {
-    var map = _extensions[messageName];
-    if (map != null) {
-      return map[tagNumber];
-    }
-    return null;
-  }
+  Extension? getExtension(String messageName, int tagNumber) =>
+      _extensions[messageName]?[tagNumber];
 
   /// Creates a shallow copy of [message], with all extensions in `this` parsed
   /// from the unknown fields of [message] and of every nested submessage.
@@ -106,9 +101,9 @@ T _reparseMessage<T extends GeneratedMessage>(
   UnknownFieldSet ensureUnknownFields() =>
       resultUnknownFields ??= ensureResult()._fieldSet._unknownFields!;
 
-  var messageUnknownFields = message._fieldSet._unknownFields;
+  final messageUnknownFields = message._fieldSet._unknownFields;
   if (messageUnknownFields != null) {
-    var codedBufferWriter = CodedBufferWriter();
+    final codedBufferWriter = CodedBufferWriter();
     extensionRegistry._extensions[message.info_.qualifiedMessageName]
         ?.forEach((tagNumber, extension) {
       final unknownField = messageUnknownFields._fields[tagNumber];
@@ -118,13 +113,13 @@ T _reparseMessage<T extends GeneratedMessage>(
       }
     });
 
-    if (codedBufferWriter.toBuffer().isNotEmpty) {
-      ensureResult()
-          .mergeFromBuffer(codedBufferWriter.toBuffer(), extensionRegistry);
+    final buffer = codedBufferWriter.toBuffer();
+    if (buffer.isNotEmpty) {
+      ensureResult().mergeFromBuffer(buffer, extensionRegistry);
     }
   }
 
-  for (var field in message._fieldSet._meta.byIndex) {
+  for (final field in message._fieldSet._meta.byIndex) {
     PbList? resultEntries;
     PbList ensureEntries() =>
         resultEntries ??= ensureResult()._fieldSet._values[field.index!];
@@ -134,8 +129,9 @@ T _reparseMessage<T extends GeneratedMessage>(
         resultMap ??= ensureResult()._fieldSet._values[field.index!];
 
     if (field.isRepeated) {
-      final messageEntries = message._fieldSet._values[field.index!];
-      if (messageEntries == null) continue;
+      final messageEntriesDynamic = message._fieldSet._values[field.index!];
+      if (messageEntriesDynamic == null) continue;
+      final PbList messageEntries = messageEntriesDynamic;
       if (field.isGroupOrMessage) {
         for (var i = 0; i < messageEntries.length; i++) {
           final GeneratedMessage entry = messageEntries[i];
@@ -146,10 +142,11 @@ T _reparseMessage<T extends GeneratedMessage>(
         }
       }
     } else if (field is MapFieldInfo) {
-      final messageMap = message._fieldSet._values[field.index!];
-      if (messageMap == null) continue;
+      final messageMapDynamic = message._fieldSet._values[field.index!];
+      if (messageMapDynamic == null) continue;
+      final PbMap messageMap = messageMapDynamic;
       if (_isGroupOrMessage(field.valueFieldType)) {
-        for (var key in messageMap.keys) {
+        for (final key in messageMap.keys) {
           final GeneratedMessage value = messageMap[key];
           final reparsedValue = _reparseMessage(value, extensionRegistry);
           if (!identical(value, reparsedValue)) {

@@ -7,8 +7,7 @@ import 'package:meta/meta.dart';
 ///
 /// Result sets are either completely materialized ([ResultSet] with all rows
 /// being directly available), or executed row-by-row ([IteratingCursor]).
-@sealed
-abstract class Cursor {
+sealed class Cursor {
   List<String> _columnNames;
 
   /// The column names of this query, as returned by `sqlite3`.
@@ -58,7 +57,7 @@ abstract class IteratingCursor extends Cursor implements Iterator<Row> {
 }
 
 /// Stores the full result of a select statement.
-class ResultSet extends Cursor
+final class ResultSet extends Cursor
     with
         ListMixin<Row>,
         NonGrowableListMixin<Row> // ignore: prefer_mixin
@@ -91,7 +90,7 @@ class ResultSet extends Cursor
 /// value of a column by its name.
 /// The [columnAt] method may be used to obtain the value of a column by its
 /// index.
-class Row
+final class Row
     with
         // ignore: prefer_mixin
         UnmodifiableMapMixin<String, dynamic>,
@@ -154,7 +153,7 @@ class Row
   }
 }
 
-class _ResultIterator extends Iterator<Row> {
+final class _ResultIterator implements Iterator<Row> {
   final ResultSet result;
   int index = -1;
 
