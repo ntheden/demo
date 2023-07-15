@@ -343,17 +343,12 @@ abstract class DatabaseConnectionUser {
     return result;
   }
 
-  /// Creates a custom select statement from the given sql [query].
-  ///
-  /// The query can be run once by calling [Selectable.get].
-  ///
-  /// For an auto-updating query stream, the [readsFrom] parameter needs to be
-  /// set to the tables the SQL statement reads from - drift can't infer it
-  /// automatically like for other queries constructed with its Dart API.
-  /// When, [Selectable.watch] can be used to construct an updating stream.
-  ///
-  /// For queries that are known to only return a single row,
-  /// [Selectable.getSingle] and [Selectable.watchSingle] can be used as well.
+  /// Creates a custom select statement from the given sql [query]. To run the
+  /// query once, use [Selectable.get]. For an auto-updating streams, set the
+  /// set of tables the ready [readsFrom] and use [Selectable.watch]. If you
+  /// know the query will never emit more than one row, you can also use
+  /// `getSingle` and `SelectableUtils.watchSingle` which return the item
+  /// directly without wrapping it into a list.
   ///
   /// If you use variables in your query (for instance with "?"), they will be
   /// bound to the [variables] you specify on this query.
@@ -534,14 +529,15 @@ abstract class DatabaseConnectionUser {
     return runZoned(calculation, zoneValues: {_zoneRootUserKey: user});
   }
 
-  /// Will be used by generated code to resolve inline Dart components in sql by
-  /// writing the [component].
+  /// Will be used by generated code to resolve inline Dart components in sql.
   @protected
   GenerationContext $write(Component component,
       {bool? hasMultipleTables, int? startIndex}) {
     final context = GenerationContext.fromDb(this)
-      ..explicitVariableIndex = startIndex
-      ..hasMultipleTables = hasMultipleTables ?? false;
+      ..explicitVariableIndex = startIndex;
+    if (hasMultipleTables != null) {
+      context.hasMultipleTables = hasMultipleTables;
+    }
     component.writeInto(context);
 
     return context;

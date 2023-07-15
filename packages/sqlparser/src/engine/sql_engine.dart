@@ -270,18 +270,22 @@ class SqlEngine {
     final node = context.root;
     node.scope = context.rootScope;
 
-    AstPreparingVisitor(context: context).start(node);
+    try {
+      AstPreparingVisitor(context: context).start(node);
 
-    node
-      ..accept(ColumnResolver(context), const ColumnResolverContext())
-      ..accept(ReferenceResolver(context), const ReferenceResolvingContext());
+      node
+        ..accept(ColumnResolver(context), const ColumnResolverContext())
+        ..accept(ReferenceResolver(context), const ReferenceResolvingContext());
 
-    final session = TypeInferenceSession(context, options);
-    final resolver = TypeResolver(session);
-    resolver.run(node);
-    context.types2 = session.results!;
+      final session = TypeInferenceSession(context, options);
+      final resolver = TypeResolver(session);
+      resolver.run(node);
+      context.types2 = session.results!;
 
-    node.acceptWithoutArg(LintingVisitor(options, context));
+      node.acceptWithoutArg(LintingVisitor(options, context));
+    } catch (_) {
+      rethrow;
+    }
   }
 }
 

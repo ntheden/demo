@@ -7,11 +7,10 @@ import 'exception.dart';
 import 'finalizer.dart';
 import 'utils.dart';
 
-final class FinalizableStatement extends FinalizablePart {
+class FinalizableStatement extends FinalizablePart {
   final RawSqliteStatement statement;
 
   bool _inResetState = true;
-  bool _hasAllocatedArguments = false;
   bool _closed = false;
 
   FinalizableStatement(this.statement);
@@ -21,7 +20,6 @@ final class FinalizableStatement extends FinalizablePart {
     if (!_closed) {
       _closed = true;
       _reset();
-      _deallocateArguments();
       statement.sqlite3_finalize();
     }
   }
@@ -31,17 +29,12 @@ final class FinalizableStatement extends FinalizablePart {
       statement.sqlite3_reset();
       _inResetState = true;
     }
-  }
 
-  void _deallocateArguments() {
-    if (_hasAllocatedArguments) {
-      _hasAllocatedArguments = false;
-      statement.deallocateArguments();
-    }
+    statement.deallocateArguments();
   }
 }
 
-base class StatementImplementation extends CommonPreparedStatement {
+class StatementImplementation implements CommonPreparedStatement {
   final RawSqliteStatement statement;
   final DatabaseImplementation database;
   final FinalizableStatement finalizable;
@@ -90,12 +83,8 @@ base class StatementImplementation extends CommonPreparedStatement {
 
   int _step() => statement.sqlite3_step();
 
-  void _reset({bool invalidateArgs = true}) {
+  void _reset() {
     finalizable._reset();
-    if (invalidateArgs) {
-      finalizable._deallocateArguments();
-    }
-
     _currentCursor = null;
   }
 
@@ -181,7 +170,7 @@ base class StatementImplementation extends CommonPreparedStatement {
     }
   }
 
-  void _bindIndexedParams(List<Object?>? params) {
+  void _bindParams(List<Object?>? params) {
     _ensureMatchingParameters(params);
     if (params == null || params.isEmpty) return;
 
@@ -232,48 +221,28 @@ base class StatementImplementation extends CommonPreparedStatement {
   }
 
   void _bindParam(Object? param, int i) {
-    // TODO: Replace with switch expression after https://github.com/dart-lang/sdk/issues/52234
-    switch (param) {
-      case null:
-        statement.sqlite3_bind_null(i);
-      case int():
-        statement.sqlite3_bind_int64(i, param);
-      case BigInt():
-        statement.sqlite3_bind_int64BigInt(i, param.checkRange);
-      case bool():
-        statement.sqlite3_bind_int64(i, param ? 1 : 0);
-      case double():
-        statement.sqlite3_bind_double(i, param);
-      case String():
-        statement.sqlite3_bind_text(i, param);
-      case List<int>():
-        statement.sqlite3_bind_blob64(i, param);
-      case CustomStatementParameter():
-        param.applyTo(this, i);
-      default:
-        throw ArgumentError.value(
-          param,
-          'params[$i]',
-          'Allowed parameters must either be null or bool, int, num, String or '
-              'List<int>.',
-        );
+    if (param == null) {
+      statement.sqlite3_bind_null(i);
+    } else if (param is int) {
+      statement.sqlite3_bind_int64(i, param);
+    } else if (param is BigInt) {
+      statement.sqlite3_bind_int64BigInt(i, param.checkRange);
+    } else if (param is bool) {
+      statement.sqlite3_bind_int64(i, param ? 1 : 0);
+    } else if (param is double) {
+      statement.sqlite3_bind_double(i, param);
+    } else if (param is String) {
+      statement.sqlite3_bind_text(i, param);
+    } else if (param is List<int>) {
+      statement.sqlite3_bind_blob64(i, param);
+    } else {
+      throw ArgumentError.value(
+        param,
+        'params[$i]',
+        'Allowed parameters must either be null or bool, int, num, String or '
+            'List<int>.',
+      );
     }
-  }
-
-  void _bindParams(StatementParameters parameters) {
-    switch (parameters) {
-      case IndexedParameters():
-        _bindIndexedParams(parameters.parameters);
-      case NamedParameters():
-        _bindMapParams(parameters.parameters);
-      case CustomParameters():
-        parameters.bind(this);
-    }
-  }
-
-  @override
-  void reset() {
-    _reset(invalidateArgs: false);
   }
 
   @override
@@ -287,7 +256,29 @@ base class StatementImplementation extends CommonPreparedStatement {
   }
 
   @override
-  ResultSet selectWith(StatementParameters parameters) {
+  void execute([List<Object?> parameters = const <Object>[]]) {
+    _ensureNotFinalized();
+
+    _reset();
+    _bindParams(parameters);
+    _execute();
+  }
+
+  @override
+  void executeMap(Map<String, Object?> parameters) {
+    _ensureNotFinalized();
+
+    _reset();
+    _bindMapParams(parameters);
+
+    _execute();
+  }
+
+  @override
+  int get parameterCount => statement.sqlite3_bind_parameter_count();
+
+  @override
+  ResultSet select([List<Object?> parameters = const <Object>[]]) {
     _ensureNotFinalized();
 
     _reset();
@@ -297,16 +288,7 @@ base class StatementImplementation extends CommonPreparedStatement {
   }
 
   @override
-  void executeWith(StatementParameters parameters) {
-    _ensureNotFinalized();
-
-    _reset();
-    _bindParams(parameters);
-    _execute();
-  }
-
-  @override
-  IteratingCursor iterateWith(StatementParameters parameters) {
+  IteratingCursor selectCursor([List<Object?> parameters = const <Object>[]]) {
     _ensureNotFinalized();
 
     _reset();
@@ -314,9 +296,6 @@ base class StatementImplementation extends CommonPreparedStatement {
 
     return _currentCursor = _ActiveCursorIterator(this);
   }
-
-  @override
-  int get parameterCount => statement.sqlite3_bind_parameter_count();
 
   @override
   ResultSet selectMap(Map<String, Object?> parameters) {

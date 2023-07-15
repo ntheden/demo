@@ -182,7 +182,7 @@ Future<DatabaseConnection> connectToDriftWorker(String workerJsUri,
     ));
   }
 
-  return connectToRemoteAndInitialize(channel);
+  return connectToRemoteAndInitialize(channel, debugLog: true);
 }
 
 class _RunningDriftWorker {

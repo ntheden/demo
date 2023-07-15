@@ -97,7 +97,7 @@ class _DisconnectorSink<T> implements StreamSink<T> {
   }
 
   @override
-  void addError(Object error, [StackTrace? stackTrace]) {
+  void addError(error, [StackTrace? stackTrace]) {
     if (_closed) throw StateError('Cannot add event after closing.');
     if (_inAddStream) {
       throw StateError('Cannot add event while adding stream.');

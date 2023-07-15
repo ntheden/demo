@@ -8,7 +8,7 @@ import 'package:yaml/yaml.dart';
 import '../plugin/customizable_platform.dart';
 
 /// User-defined settings for a built-in test runtime.
-final class RuntimeSettings {
+class RuntimeSettings {
   /// The identifier used to look up the runtime being overridden.
   final String identifier;
 

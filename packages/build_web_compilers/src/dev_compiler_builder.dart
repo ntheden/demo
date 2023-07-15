@@ -47,9 +47,6 @@ class DevCompilerBuilder implements Builder {
   /// watch, expression evaluation, and variable inspection windows.
   final bool emitDebugSymbols;
 
-  /// Enables canary features in DDC.
-  final bool canaryFeatures;
-
   final bool trackUnusedInputs;
 
   final DartPlatform platform;
@@ -78,7 +75,6 @@ class DevCompilerBuilder implements Builder {
       {this.useIncrementalCompiler = true,
       this.generateFullDill = false,
       this.emitDebugSymbols = false,
-      this.canaryFeatures = false,
       this.trackUnusedInputs = false,
       required this.platform,
       String? sdkKernelPath,
@@ -128,7 +124,6 @@ class DevCompilerBuilder implements Builder {
           useIncrementalCompiler,
           generateFullDill,
           emitDebugSymbols,
-          canaryFeatures,
           trackUnusedInputs,
           platformSdk,
           sdkKernelPath,
@@ -149,7 +144,6 @@ Future<void> _createDevCompilerModule(
     bool useIncrementalCompiler,
     bool generateFullDill,
     bool emitDebugSymbols,
-    bool canaryFeatures,
     bool trackUnusedInputs,
     String dartSdk,
     String sdkKernelPath,
@@ -194,7 +188,6 @@ Future<void> _createDevCompilerModule(
       '--no-summarize',
       if (generateFullDill) '--experimental-output-compiled-kernel',
       if (emitDebugSymbols) '--emit-debug-symbols',
-      if (canaryFeatures) '--canary',
       '-o',
       jsOutputFile.path,
       debugMode ? '--source-map' : '--no-source-map',
@@ -239,8 +232,8 @@ Future<void> _createDevCompilerModule(
             buildStep.trackStage('Compile', () => response, isExternal: true));
 
     // TODO(jakemac53): Fix the ddc worker mode so it always sends back a bad
-    // status code if something failed. Today we just make sure there is an
-    // output JS file to verify it was successful.
+    // status code if something failed. Today we just make sure there is an output
+    // JS file to verify it was successful.
     var message = response.output
         .replaceAll('${scratchSpace.tempDir.path}/', '')
         .replaceAll('$multiRootScheme:///', '');
@@ -270,7 +263,7 @@ Future<void> _createDevCompilerModule(
           module.primarySource.changeExtension(jsSourceMapExtension);
       var file = scratchSpace.fileFor(sourceMapId);
       var content = await file.readAsString();
-      var json = jsonDecode(content) as Map<String, Object?>;
+      var json = jsonDecode(content);
       json['sources'] = fixSourceMapSources((json['sources'] as List).cast());
       await buildStep.writeAsString(sourceMapId, jsonEncode(json));
 
@@ -279,8 +272,9 @@ Future<void> _createDevCompilerModule(
       var metadataId = module.primarySource.changeExtension(metadataExtension);
       file = scratchSpace.fileFor(metadataId);
       content = await file.readAsString();
-      json = jsonDecode(content) as Map<String, Object?>;
-      _fixMetadataSources(json, scratchSpace.tempDir.uri);
+      json = jsonDecode(content);
+      _fixMetadataSources(
+          json as Map<String, dynamic>, scratchSpace.tempDir.uri);
       await buildStep.writeAsString(metadataId, jsonEncode(json));
 
       // Copy the symbols output, modifying its contents to remove the temp

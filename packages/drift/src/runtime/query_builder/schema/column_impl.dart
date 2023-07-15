@@ -251,8 +251,7 @@ class GeneratedColumn<T extends Object> extends Column<T> {
   /// the constraint does not depend on the dialect.
   ///
   /// Used by generated code.
-  static void Function(GenerationContext) constraintIsAlways(
-          String constraint) =>
+  static Function(GenerationContext) constraintIsAlways(String constraint) =>
       (context) => context.buffer
         ..write(' ')
         ..write(constraint);
@@ -261,7 +260,7 @@ class GeneratedColumn<T extends Object> extends Column<T> {
   /// the constraint depends on the dialect.
   ///
   /// Used by generated code.
-  static void Function(GenerationContext) constraintsDependsOnDialect(
+  static Function(GenerationContext) constraintsDependsOnDialect(
     Map<SqlDialect, String> constraints,
   ) =>
       (context) {

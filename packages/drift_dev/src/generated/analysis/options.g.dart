@@ -32,8 +32,7 @@ DriftOptions _$DriftOptionsFromJson(Map json) => $checkedCreate(
             'scoped_dart_components',
             'store_date_time_values_as_text',
             'case_from_dart_to_sql',
-            'write_to_columns_mixins',
-            'fatal_warnings'
+            'write_to_columns_mixins'
           ],
         );
         final val = DriftOptions(
@@ -87,8 +86,6 @@ DriftOptions _$DriftOptionsFromJson(Map json) => $checkedCreate(
                   CaseFromDartToSql.snake),
           writeToColumnsMixins: $checkedConvert(
               'write_to_columns_mixins', (v) => v as bool? ?? false),
-          fatalWarnings:
-              $checkedConvert('fatal_warnings', (v) => v as bool? ?? false),
           dialect: $checkedConvert('sql',
               (v) => v == null ? null : DialectOptions.fromJson(v as Map)),
         );
@@ -117,7 +114,6 @@ DriftOptions _$DriftOptionsFromJson(Map json) => $checkedCreate(
         'storeDateTimeValuesAsText': 'store_date_time_values_as_text',
         'caseFromDartToSql': 'case_from_dart_to_sql',
         'writeToColumnsMixins': 'write_to_columns_mixins',
-        'fatalWarnings': 'fatal_warnings',
         'dialect': 'sql'
       },
     );
@@ -151,7 +147,6 @@ Map<String, dynamic> _$DriftOptionsToJson(DriftOptions instance) =>
       'case_from_dart_to_sql':
           _$CaseFromDartToSqlEnumMap[instance.caseFromDartToSql]!,
       'write_to_columns_mixins': instance.writeToColumnsMixins,
-      'fatal_warnings': instance.fatalWarnings,
     };
 
 const _$SqlModuleEnumMap = {

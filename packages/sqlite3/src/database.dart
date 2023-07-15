@@ -175,7 +175,8 @@ enum SqliteUpdateKind {
 }
 
 /// A data change notification from sqlite.
-final class SqliteUpdate {
+@sealed
+class SqliteUpdate {
   /// The kind of write being reported.
   final SqliteUpdateKind kind;
 

@@ -63,13 +63,9 @@ class MemoryDescriptor {
 }
 
 @JS('WebAssembly.Memory')
-@staticInterop
 class Memory {
-  external factory Memory(MemoryDescriptor descriptor);
-}
+  external Memory(MemoryDescriptor descriptor);
 
-extension MemoryApi on Memory {
-  @JS()
   external ByteBuffer get buffer;
 }
 

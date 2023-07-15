@@ -198,8 +198,9 @@ class _Parser {
   ///
   /// [annotation] is the annotation.
   Map<PlatformSelector, Metadata> _parseOnPlatform(Annotation annotation) {
-    return _parseMap(annotation.arguments!.arguments.first,
-        key: _parsePlatformSelector, value: (value) {
+    return _parseMap(annotation.arguments!.arguments.first, key: (key) {
+      return _parsePlatformSelector(key);
+    }, value: (value) {
       var expressions = <AstNode>[];
       if (value is ListLiteral) {
         expressions = _parseList(value);
@@ -216,7 +217,11 @@ class _Parser {
       Object? skip;
       for (var expression in expressions) {
         if (expression is InstanceCreationExpression) {
-          var className = expression.constructorName.type.name2.lexeme;
+          var className = _resolveConstructor(
+                  // ignore: deprecated_member_use
+                  expression.constructorName.type.name,
+                  expression.constructorName.name)
+              .first;
 
           if (className == 'Timeout') {
             _assertSingle(timeout, 'Timeout', expression);
@@ -339,7 +344,7 @@ class _Parser {
   /// If [expression] is not an instantiation of a [className] throws.
   String? _findConstructorName(Expression expression, String className) {
     if (expression is InstanceCreationExpression) {
-      return _findConstructorNameFromInstantiation(expression, className);
+      return _findConstructornameFromInstantiation(expression, className);
     }
     if (expression is MethodInvocation) {
       return _findConstructorNameFromMethod(expression, className);
@@ -348,10 +353,13 @@ class _Parser {
         'Expected a $className.', _spanFor(expression));
   }
 
-  String? _findConstructorNameFromInstantiation(
+  String? _findConstructornameFromInstantiation(
       InstanceCreationExpression constructor, String className) {
-    var actualClassName = constructor.constructorName.type.name2.lexeme;
-    var constructorName = constructor.constructorName.name?.name;
+    // ignore: deprecated_member_use
+    var pair = _resolveConstructor(constructor.constructorName.type.name,
+        constructor.constructorName.name);
+    var actualClassName = pair.first;
+    var constructorName = pair.last;
 
     if (actualClassName != className) {
       throw SourceSpanFormatException(

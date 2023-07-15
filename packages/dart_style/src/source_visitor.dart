@@ -81,6 +81,14 @@ class SourceVisitor extends ThrowingAstVisitor {
   /// split.
   final List<bool> _collectionSplits = [];
 
+  /// The stack of current rules for handling parameter metadata.
+  ///
+  /// Each time a parameter (or type parameter) list is begun, a single rule
+  /// for all of the metadata annotations on parameters in that list is pushed
+  /// onto this stack. We reuse this rule for all annotations so that they split
+  /// in unison.
+  final List<Rule> _metadataRules = [];
+
   /// The mapping for blocks that are managed by the argument list that contains
   /// them.
   ///
@@ -420,7 +428,9 @@ class SourceVisitor extends ThrowingAstVisitor {
     var splitIfTargetSplits = true;
     if (node.cascadeSections.length > 1) {
       // Always split if there are multiple cascade sections.
-    } else if (target.isCollectionLiteral) {
+    } else if (target is ListLiteral ||
+        target is RecordLiteral ||
+        target is SetOrMapLiteral) {
       splitIfTargetSplits = false;
     } else if (target is InvocationExpression) {
       // If the target is a call with a trailing comma in the argument list,
@@ -1335,6 +1345,8 @@ class SourceVisitor extends ThrowingAstVisitor {
     if (nestExpression) builder.nestExpression();
     token(node.leftParenthesis);
 
+    _metadataRules.add(Rule());
+
     PositionalRule? rule;
     if (requiredParams.isNotEmpty) {
       rule = PositionalRule(null, argumentCount: requiredParams.length);
@@ -1394,6 +1406,8 @@ class SourceVisitor extends ThrowingAstVisitor {
       // "]" or "}" for optional parameters.
       token(node.rightDelimiter);
     }
+
+    _metadataRules.removeLast();
 
     token(node.rightParenthesis);
     if (nestExpression) builder.unnest();
@@ -1813,7 +1827,7 @@ class SourceVisitor extends ThrowingAstVisitor {
     var hasInnerControlFlow = false;
     for (var element in ifElements) {
       _visitIfCondition(element.ifKeyword, element.leftParenthesis,
-          element.expression, element.caseClause, element.rightParenthesis);
+          element.condition, element.caseClause, element.rightParenthesis);
 
       visitChild(element, element.thenElement);
       if (element.thenElement.isControlFlowElement) {
@@ -1856,7 +1870,7 @@ class SourceVisitor extends ThrowingAstVisitor {
 
   @override
   void visitIfStatement(IfStatement node) {
-    _visitIfCondition(node.ifKeyword, node.leftParenthesis, node.expression,
+    _visitIfCondition(node.ifKeyword, node.leftParenthesis, node.condition,
         node.caseClause, node.rightParenthesis);
 
     void visitClause(Statement clause) {
@@ -2252,22 +2266,9 @@ class SourceVisitor extends ThrowingAstVisitor {
 
   @override
   void visitNamedType(NamedType node) {
-    var importPrefix = node.importPrefix;
-    if (importPrefix != null) {
-      builder.startSpan();
-
-      token(importPrefix.name);
-      soloZeroSplit();
-      token(importPrefix.period);
-    }
-
-    token(node.name2);
+    visit(node.name);
     visit(node.typeArguments);
     token(node.question);
-
-    if (importPrefix != null) {
-      builder.endSpan();
-    }
   }
 
   @override
@@ -2505,10 +2506,10 @@ class SourceVisitor extends ThrowingAstVisitor {
       if (node.rightParenthesis.precedingComments != null) soloZeroSplit();
 
       token(node.rightParenthesis);
-      token(node.question);
       return;
     }
 
+    _metadataRules.add(Rule());
     token(node.leftParenthesis);
     builder.startRule();
 
@@ -2563,6 +2564,7 @@ class SourceVisitor extends ThrowingAstVisitor {
 
     builder = builder.endBlock(forceSplit: force);
     builder.endRule();
+    _metadataRules.removeLast();
 
     // Now write the delimiter(s) themselves.
     _writeText(firstClosingDelimiter.lexeme, firstClosingDelimiter);
@@ -2822,7 +2824,7 @@ class SourceVisitor extends ThrowingAstVisitor {
     if (whenClause != null) {
       // Wrap the when clause rule around the pattern so that if the pattern
       // splits then we split before "when" too.
-      builder.startLazyRule();
+      builder.startRule();
       builder.nestExpression(indent: Indent.block);
     }
 
@@ -2983,7 +2985,11 @@ class SourceVisitor extends ThrowingAstVisitor {
 
   @override
   void visitTypeParameterList(TypeParameterList node) {
+    _metadataRules.add(Rule());
+
     _visitGenericList(node.leftBracket, node.rightBracket, node.typeParameters);
+
+    _metadataRules.removeLast();
   }
 
   @override
@@ -3131,11 +3137,23 @@ class SourceVisitor extends ThrowingAstVisitor {
       return;
     }
 
-    // Split before all of the annotations on this parameter or none of them.
-    builder.startLazyRule();
+    // Split before all of the annotations or none.
+    builder.startLazyRule(_metadataRules.last);
 
-    visitNodes(metadata, between: split, after: split);
+    visitNodes(metadata, between: split, after: () {
+      // Don't nest until right before the last metadata. Ensures we only
+      // indent the parameter and not any of the metadata:
+      //
+      //     function(
+      //         @LongAnnotation
+      //         @LongAnnotation
+      //             indentedParameter) {}
+      builder.nestExpression(now: true);
+      split();
+    });
     visitParameter();
+
+    builder.unnest();
 
     // Wrap the rule around the parameter too. If it splits, we want to force
     // the annotations to split as well.
@@ -3656,6 +3674,8 @@ class SourceVisitor extends ThrowingAstVisitor {
     // Can't have a trailing comma if there are no parameters.
     assert(parameters.parameters.isNotEmpty);
 
+    _metadataRules.add(Rule());
+
     // Always split the parameters.
     builder.startRule(Rule.hard());
 
@@ -3680,7 +3700,7 @@ class SourceVisitor extends ThrowingAstVisitor {
     builder = builder.startBlock();
 
     for (var parameter in parameters.parameters) {
-      builder.writeNewline();
+      builder.writeNewline(preventDivide: true);
       visit(parameter);
       _writeCommaAfter(parameter);
 
@@ -3697,12 +3717,14 @@ class SourceVisitor extends ThrowingAstVisitor {
     var firstDelimiter =
         parameters.rightDelimiter ?? parameters.rightParenthesis;
     if (firstDelimiter.precedingComments != null) {
-      builder.writeNewline();
+      builder.writeNewline(preventDivide: true);
       writePrecedingCommentsAndNewlines(firstDelimiter);
     }
 
     builder = builder.endBlock();
     builder.endRule();
+
+    _metadataRules.removeLast();
 
     // Now write the delimiter itself.
     _writeText(firstDelimiter.lexeme, firstDelimiter);

@@ -6,7 +6,6 @@ import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:collection/collection.dart';
-import 'package:drift/internal/versioned_schema.dart';
 import 'package:drift/src/dsl/dsl.dart';
 import 'package:drift/src/runtime/api/options.dart';
 import 'package:drift/src/runtime/api/runtime_api.dart';
@@ -16,7 +15,6 @@ import 'package:drift/src/runtime/exceptions.dart';
 import 'package:drift/src/runtime/executor/stream_queries.dart';
 import 'package:drift/src/runtime/types/converters.dart';
 import 'package:drift/src/runtime/types/mapping.dart';
-import 'package:drift/src/utils/async_map.dart';
 import 'package:drift/src/utils/single_transformer.dart';
 import 'package:meta/meta.dart';
 

@@ -5,7 +5,7 @@
 import 'compiler.dart';
 
 /// An enum of all Dart runtimes supported by the test runner.
-final class Runtime {
+class Runtime {
   // When adding new runtimes, be sure to update the baseline and derived
   // variable tests in test/backend/platform_selector/evaluate_test.
 

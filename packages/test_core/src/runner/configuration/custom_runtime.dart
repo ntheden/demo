@@ -7,7 +7,7 @@ import 'package:yaml/yaml.dart';
 
 /// A user-defined test runtime, based on an existing runtime but with
 /// different configuration.
-final class CustomRuntime {
+class CustomRuntime {
   /// The human-friendly name of the runtime.
   final String name;
 

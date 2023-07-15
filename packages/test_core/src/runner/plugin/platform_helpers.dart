@@ -62,7 +62,7 @@ RunnerSuiteController deserializeSuite(
     'foldTraceOnly': Configuration.current.foldTraceOnly.toList(),
     'allowDuplicateTestNames': suiteConfig.allowDuplicateTestNames,
     'ignoreTimeouts': suiteConfig.ignoreTimeouts,
-    ...message as Map<String, dynamic>,
+    ...(message as Map<String, dynamic>),
   });
 
   var completer = Completer<Group>();
@@ -94,8 +94,7 @@ RunnerSuiteController deserializeSuite(
             break;
 
           case 'error':
-            var asyncError = RemoteException.deserialize(
-                response['error'] as Map<String, dynamic>);
+            var asyncError = RemoteException.deserialize(response['error']);
             handleError(
                 LoadException(path, asyncError.error), asyncError.stackTrace);
             break;

@@ -49,8 +49,7 @@ class CommonTableExpression extends AstNode with ResultSet {
   Token? asToken;
   IdentifierToken? tableNameToken;
 
-  @override
-  List<Column>? resolvedColumns;
+  List<CommonTableExpressionColumn>? _cachedColumns;
 
   CommonTableExpression({
     required this.cteTableName,
@@ -71,6 +70,33 @@ class CommonTableExpression extends AstNode with ResultSet {
 
   @override
   Iterable<AstNode> get childNodes => [as];
+
+  @override
+  List<Column>? get resolvedColumns {
+    final columnsOfSelect = as.resolvedColumns;
+
+    // we don't override column names, so just return the columns declared by
+    // the select statement
+    if (columnNames == null) return columnsOfSelect;
+
+    final cached = _cachedColumns ??= columnNames!
+        .map((name) => CommonTableExpressionColumn(name)..containingSet = this)
+        .toList();
+
+    if (columnsOfSelect != null) {
+      // bind the CommonTableExpressionColumn to the real underlying column
+      // returned by the select statement
+
+      for (var i = 0; i < cached.length; i++) {
+        if (i < columnsOfSelect.length) {
+          final selectColumn = columnsOfSelect[i];
+          cached[i].innerColumn = selectColumn;
+        }
+      }
+    }
+
+    return _cachedColumns;
+  }
 
   @override
   bool get visibleToChildren => true;

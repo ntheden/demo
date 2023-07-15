@@ -125,7 +125,7 @@ abstract class WindowFunction<V> implements AggregateFunction<V> {
 }
 
 /// Application-defined context used to compute results in aggregate functions.
-final class AggregateContext<V> {
+class AggregateContext<V> {
   /// The current value of this context.
   V value;
 
@@ -134,7 +134,7 @@ final class AggregateContext<V> {
 }
 
 /// Describes how many arguments an application-defined sql function can take.
-final class AllowedArgumentCount {
+class AllowedArgumentCount {
   final int allowedArgs;
 
   const AllowedArgumentCount(this.allowedArgs);

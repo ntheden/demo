@@ -1,7 +1,9 @@
 import 'database.dart';
 
+typedef CommmonSqlite3 = CommonSqlite3;
+
 /// Provides access to `sqlite3` functions, such as opening new databases.
-abstract interface class CommonSqlite3 {
+abstract class CommonSqlite3 {
   /// The version of the sqlite3 library in used.
   Version get version;
 
@@ -37,7 +39,7 @@ abstract interface class CommonSqlite3 {
 }
 
 /// Version information about the sqlite3 library in use.
-final class Version {
+class Version {
   /// A textual description of this sqlite version, such as '3.32.2'.
   final String libVersion;
 

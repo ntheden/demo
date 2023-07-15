@@ -2,6 +2,8 @@
 // for details. All rights reserved. Use of this source code is governed by a
 // BSD-style license that can be found in the LICENSE file.
 
+library code_builder.src.specs.expression;
+
 import 'package:meta/meta.dart';
 
 import '../base.dart';
@@ -147,7 +149,6 @@ abstract class Expression implements Spec {
       );
 
   /// Returns the result of `this` `-` [other].
-  // TODO(kevmoo): create a function spelled correctly and deprecate this one!
   Expression operatorSubstract(Expression other) => BinaryExpression._(
         expression,
         other,
@@ -313,7 +314,7 @@ abstract class Expression implements Spec {
         addSpace: false,
       );
 
-  /// This expression preceded by the null safe spread operator `?...`.
+  /// This expression precenede by the null safe spread operator `?...`.
   Expression get nullSafeSpread => BinaryExpression._(
         const LiteralExpression._('...?'),
         this,
@@ -412,8 +413,6 @@ abstract class ExpressionVisitor<T> implements SpecVisitor<T> {
   T visitLiteralListExpression(LiteralListExpression expression, [T? context]);
   T visitLiteralSetExpression(LiteralSetExpression expression, [T? context]);
   T visitLiteralMapExpression(LiteralMapExpression expression, [T? context]);
-  T visitLiteralRecordExpression(LiteralRecordExpression expression,
-      [T? context]);
   T visitParenthesizedExpression(ParenthesizedExpression expression,
       [T? context]);
 }
@@ -594,42 +593,13 @@ abstract class ExpressionEmitter implements ExpressionVisitor<StringSink> {
       visitAll<Object?>(expression.values.keys, out, (key) {
         final value = expression.values[key];
         _acceptLiteral(key, out);
-        if (key is! LiteralSpreadExpression) {
-          out.write(': ');
-        }
+        out.write(': ');
         _acceptLiteral(value, out);
       });
       if (expression.values.length > 1) {
         out.write(', ');
       }
       return out..write('}');
-    });
-  }
-
-  @override
-  StringSink visitLiteralRecordExpression(
-    LiteralRecordExpression expression, [
-    StringSink? output,
-  ]) {
-    final out = output ??= StringBuffer();
-    return _writeConstExpression(out, expression.isConst, () {
-      out.write('(');
-      visitAll<Object?>(expression.positionalFieldValues, out, (value) {
-        _acceptLiteral(value, out);
-      });
-      if (expression.namedFieldValues.isNotEmpty) {
-        if (expression.positionalFieldValues.isNotEmpty) {
-          out.write(', ');
-        }
-      } else if (expression.positionalFieldValues.length == 1) {
-        out.write(',');
-      }
-      visitAll<MapEntry<String, Object?>>(
-          expression.namedFieldValues.entries, out, (entry) {
-        out.write('${entry.key}: ');
-        _acceptLiteral(entry.value, out);
-      });
-      return out..write(')');
     });
   }
 

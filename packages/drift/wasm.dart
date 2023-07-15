@@ -1,25 +1,22 @@
-/// Web support for drift.
+/// An experimental web-compatible version of drift that doesn't depend
+/// on external JavaScript sources.
 ///
-/// For more information about the components of this library and how to use
-/// them, see https://drift.simonbinder.eu/web/.
-/// Be aware that additional setup is necessary to use drift on the web, this
-/// is explained in the documentation.
+/// While the implementation is tested and no API breaking changes are expected
+/// to the public interface, it is still fairly new and may have remaining bugs
+/// or issues.
+///
+/// A generally less efficient, but currently more stable backend is available
+/// through the `package:drift/web.dart` library described in the
+/// [documentation][https://drift.simonbinder.eu/web/].
+@experimental
 library drift.wasm;
 
-import 'dart:async';
-import 'dart:html';
-import 'dart:typed_data';
-
+import 'package:meta/meta.dart';
+import 'package:sqlite3/common.dart';
 import 'package:sqlite3/wasm.dart';
 
 import 'backends.dart';
 import 'src/sqlite3/database.dart';
-import 'src/web/wasm_setup.dart';
-import 'src/web/wasm_setup/dedicated_worker.dart';
-import 'src/web/wasm_setup/shared_worker.dart';
-import 'src/web/wasm_setup/types.dart';
-
-export 'src/web/wasm_setup/types.dart';
 
 /// Signature of a function that can perform setup work on a [database] before
 /// drift is fully ready.
@@ -48,92 +45,35 @@ class WasmDatabase extends DelegatedDatabase {
   /// to insert more than one rows, be sure you run in a transaction if
   /// possible.
   factory WasmDatabase({
-    required CommonSqlite3 sqlite3,
+    required CommmonSqlite3 sqlite3,
     required String path,
     WasmDatabaseSetup? setup,
     IndexedDbFileSystem? fileSystem,
     bool logStatements = false,
-    bool cachePreparedStatements = true,
   }) {
     return WasmDatabase._(
-      _WasmDelegate(sqlite3, path, setup, fileSystem, cachePreparedStatements),
-      logStatements,
-    );
+        _WasmDelegate(sqlite3, path, setup, fileSystem), logStatements);
   }
 
   /// Creates an in-memory database in the loaded [sqlite3] database.
   factory WasmDatabase.inMemory(
-    CommonSqlite3 sqlite3, {
+    CommmonSqlite3 sqlite3, {
     WasmDatabaseSetup? setup,
     bool logStatements = false,
-    bool cachePreparedStatements = true,
   }) {
     return WasmDatabase._(
-      _WasmDelegate(sqlite3, null, setup, null, cachePreparedStatements),
-      logStatements,
-    );
-  }
-
-  /// Opens a database on the web.
-  ///
-  /// Drift will detect features supported by the current browser and picks an
-  /// appropriate implementation to store data based on those results.
-  ///
-  /// Using this API requires two additional file that you need to copy into the
-  /// `web/` folder of your Flutter or Dart application: A `sqlite3.wasm` file,
-  /// which you can [get here](https://github.com/simolus3/sqlite3.dart/releases),
-  /// and a drift worker, which you can [get here](https://drift.simonbinder.eu/web/#worker).
-  ///
-  /// For more detailed information, see https://drift.simonbinder.eu/web.
-  static Future<WasmDatabaseResult> open({
-    required String databaseName,
-    required Uri sqlite3Uri,
-    required Uri driftWorkerUri,
-    FutureOr<Uint8List?> Function()? initializeDatabase,
-  }) {
-    return WasmDatabaseOpener(
-      databaseName: databaseName,
-      sqlite3WasmUri: sqlite3Uri,
-      driftWorkerUri: driftWorkerUri,
-      initializeDatabase: initializeDatabase,
-    ).open();
-  }
-
-  /// The entrypoint for a web worker suitable for use with [open].
-  ///
-  /// Generally, you can grab a pre-compiled worker file from a
-  /// [drift release](https://github.com/simolus3/drift/releases) and don't need
-  /// to call this method in your app.
-  ///
-  /// If you prefer to compile the worker yourself, write a simple Dart program
-  /// that calls this method in its `main()` function and compile that with
-  /// `dart2js`.
-  static void workerMainForOpen() {
-    final self = WorkerGlobalScope.instance;
-
-    if (self is DedicatedWorkerGlobalScope) {
-      DedicatedDriftWorker(self).start();
-    } else if (self is SharedWorkerGlobalScope) {
-      SharedDriftWorker(self).start();
-    }
+        _WasmDelegate(sqlite3, null, setup, null), logStatements);
   }
 }
 
 class _WasmDelegate extends Sqlite3Delegate<CommonDatabase> {
-  final CommonSqlite3 _sqlite3;
+  final CommmonSqlite3 _sqlite3;
   final String? _path;
   final IndexedDbFileSystem? _fileSystem;
 
   _WasmDelegate(
-    this._sqlite3,
-    this._path,
-    WasmDatabaseSetup? setup,
-    this._fileSystem,
-    bool cachePreparedStatements,
-  ) : super(
-          setup,
-          cachePreparedStatements: cachePreparedStatements,
-        );
+      this._sqlite3, this._path, WasmDatabaseSetup? setup, this._fileSystem)
+      : super(setup);
 
   @override
   CommonDatabase openDatabase() {
@@ -185,8 +125,6 @@ class _WasmDelegate extends Sqlite3Delegate<CommonDatabase> {
 
   @override
   Future<void> close() async {
-    await super.close();
-
     if (closeUnderlyingWhenClosed) {
       database.dispose();
       await _flush();

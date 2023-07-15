@@ -10,7 +10,7 @@ import 'package:meta/meta_meta.dart';
 ///
 /// [the README]: https://github.com/dart-lang/test/tree/master/pkgs/test#platform-selectors
 @Target({TargetKind.library})
-final class TestOn {
+class TestOn {
   /// The expression specifying the platform.
   final String expression;
 

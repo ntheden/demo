@@ -64,12 +64,18 @@ String urlOfElement(Element element) => element.kind == ElementKind.DYNAMIC
         .replace(fragment: element.name)
         .toString();
 
-Uri normalizeUrl(Uri url) => switch (url.scheme) {
-      'dart' => normalizeDartUrl(url),
-      'package' => _packageToAssetUrl(url),
-      'file' => _fileToAssetUrl(url),
-      _ => url
-    };
+Uri normalizeUrl(Uri url) {
+  switch (url.scheme) {
+    case 'dart':
+      return normalizeDartUrl(url);
+    case 'package':
+      return packageToAssetUrl(url);
+    case 'file':
+      return fileToAssetUrl(url);
+    default:
+      return url;
+  }
+}
 
 /// Make `dart:`-type URLs look like a user-knowable path.
 ///
@@ -81,7 +87,7 @@ Uri normalizeDartUrl(Uri url) => url.pathSegments.isNotEmpty
     ? url.replace(pathSegments: url.pathSegments.take(1))
     : url;
 
-Uri _fileToAssetUrl(Uri url) {
+Uri fileToAssetUrl(Uri url) {
   if (!p.isWithin(p.url.current, url.path)) return url;
   return Uri(
     scheme: 'asset',
@@ -97,7 +103,7 @@ Uri _fileToAssetUrl(Uri url) {
 ///
 /// For example, this transforms `package:source_gen/source_gen.dart` into:
 /// `asset:source_gen/lib/source_gen.dart`.
-Uri _packageToAssetUrl(Uri url) => url.scheme == 'package'
+Uri packageToAssetUrl(Uri url) => url.scheme == 'package'
     ? url.replace(
         scheme: 'asset',
         pathSegments: <String>[

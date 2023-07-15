@@ -25,7 +25,7 @@ import '../functions.dart';
 ///
 /// All of the classes and methods defined here are internal and can be changed
 /// as needed.
-abstract base class RawSqliteBindings {
+abstract class RawSqliteBindings {
   String sqlite3_libversion();
   String sqlite3_sourceid();
   int sqlite3_libversion_number();
@@ -39,7 +39,7 @@ abstract base class RawSqliteBindings {
 }
 
 /// Combines a sqlite result code and the result object.
-final class SqliteResult<T> {
+class SqliteResult<T> {
   final int resultCode;
 
   /// The result of the operation, which is assumed to be valid if [resultCode]
@@ -55,7 +55,7 @@ typedef RawXFinal = void Function(RawSqliteContext);
 typedef RawUpdateHook = void Function(int kind, String tableName, int rowId);
 typedef RawCollation = int Function(String? a, String? b);
 
-abstract base class RawSqliteDatabase {
+abstract class RawSqliteDatabase {
   int sqlite3_changes();
   int sqlite3_last_insert_rowid();
 
@@ -106,7 +106,7 @@ abstract base class RawSqliteDatabase {
 }
 
 /// A stateful wrapper around multiple `sqlite3_prepare` invocations.
-abstract base class RawStatementCompiler {
+abstract class RawStatementCompiler {
   /// The current byte-offset in the SQL statement passed to
   /// [RawSqliteDatabase.newCompiler].
   ///
@@ -126,7 +126,7 @@ abstract base class RawStatementCompiler {
   void close();
 }
 
-abstract base class RawSqliteStatement {
+abstract class RawSqliteStatement {
   void sqlite3_reset();
   int sqlite3_step();
   void sqlite3_finalize();
@@ -163,7 +163,7 @@ abstract base class RawSqliteStatement {
   int sqlite3_bind_parameter_count();
 }
 
-abstract base class RawSqliteContext {
+abstract class RawSqliteContext {
   AggregateContext<Object?>? dartAggregateContext;
 
   void sqlite3_result_null();
@@ -175,7 +175,7 @@ abstract base class RawSqliteContext {
   void sqlite3_result_error(String message);
 }
 
-abstract base class RawSqliteValue {
+abstract class RawSqliteValue {
   int sqlite3_value_type();
   int sqlite3_value_int64();
   double sqlite3_value_double();

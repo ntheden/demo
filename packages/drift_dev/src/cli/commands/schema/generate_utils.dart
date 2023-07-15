@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
@@ -12,10 +13,9 @@ import '../../../writer/database_writer.dart';
 import '../../../writer/import_manager.dart';
 import '../../../writer/writer.dart';
 import '../../cli.dart';
-import '../schema.dart';
 
 class GenerateUtilsCommand extends Command {
-  final DriftDevCli cli;
+  final MoorCli cli;
 
   GenerateUtilsCommand(this.cli) {
     argParser.addFlag(
@@ -61,7 +61,7 @@ class GenerateUtilsCommand extends Command {
       await outputDir.create();
     }
 
-    final schema = await parseSchema(inputDir);
+    final schema = await _parseSchema(inputDir);
     for (final versionAndEntities in schema.entries) {
       final version = versionAndEntities.key;
       final entities = versionAndEntities.value;
@@ -81,10 +81,30 @@ class GenerateUtilsCommand extends Command {
         'Wrote ${schema.length + 1} files into ${p.relative(outputDir.path)}');
   }
 
+  Future<Map<int, _ExportedSchema>> _parseSchema(Directory directory) async {
+    final results = <int, _ExportedSchema>{};
+
+    await for (final entity in directory.list()) {
+      final basename = p.basename(entity.path);
+      final match = _filenames.firstMatch(basename);
+
+      if (match == null || entity is! File) continue;
+
+      final version = int.parse(match.group(1)!);
+      final rawData = json.decode(await entity.readAsString());
+
+      final schema = SchemaReader.readJson(rawData as Map<String, dynamic>);
+      results[version] =
+          _ExportedSchema(schema.entities.toList(), schema.options);
+    }
+
+    return results;
+  }
+
   Future<void> _writeSchemaFile(
     Directory output,
     int version,
-    ExportedSchema schema,
+    _ExportedSchema schema,
     bool dataClasses,
     bool companions,
   ) {
@@ -164,7 +184,15 @@ class GenerateUtilsCommand extends Command {
 
   String _filenameForVersion(int version) => 'schema_v$version.dart';
 
+  static final _filenames = RegExp(r'(?:moor|drift)_schema_v(\d+)\.json');
   static final _dartfmt = DartFormatter();
   static const _prefix = '// GENERATED CODE, DO NOT EDIT BY HAND.\n'
       '// ignore_for_file: type=lint';
+}
+
+class _ExportedSchema {
+  final List<DriftElement> schema;
+  final Map<String, Object?> options;
+
+  _ExportedSchema(this.schema, this.options);
 }

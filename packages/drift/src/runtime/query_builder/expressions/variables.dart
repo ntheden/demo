@@ -65,10 +65,7 @@ class Variable<T extends Object> extends Expression<T> {
 
   @override
   void writeInto(GenerationContext context) {
-    if (!context.supportsVariables ||
-        // Workaround for https://github.com/simolus3/drift/issues/2441
-        // Binding nulls on postgres is currently untyped which causes issues.
-        (value == null && context.dialect == SqlDialect.postgres)) {
+    if (!context.supportsVariables) {
       // Write as constant instead.
       Constant<T>(value).writeInto(context);
       return;

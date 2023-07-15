@@ -8,7 +8,6 @@ import 'dart:html' as html;
 
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_platform_interface.dart';
-import 'package:shared_preferences_platform_interface/types.dart';
 
 /// The web implementation of [SharedPreferencesStorePlatform].
 ///
@@ -23,52 +22,27 @@ class SharedPreferencesPlugin extends SharedPreferencesStorePlatform {
 
   @override
   Future<bool> clear() async {
-    return clearWithParameters(
-      ClearParameters(
-        filter: PreferencesFilter(prefix: _defaultPrefix),
-      ),
-    );
+    return clearWithPrefix(_defaultPrefix);
   }
 
   @override
   Future<bool> clearWithPrefix(String prefix) async {
-    return clearWithParameters(
-        ClearParameters(filter: PreferencesFilter(prefix: prefix)));
-  }
-
-  @override
-  Future<bool> clearWithParameters(ClearParameters parameters) async {
-    final PreferencesFilter filter = parameters.filter;
     // IMPORTANT: Do not use html.window.localStorage.clear() as that will
     //            remove _all_ local data, not just the keys prefixed with
     //            _prefix
-    _getFilteredKeys(filter.prefix, allowList: filter.allowList)
-        .forEach(html.window.localStorage.remove);
+    _getStoredFlutterKeys(prefix).forEach(html.window.localStorage.remove);
     return true;
   }
 
   @override
   Future<Map<String, Object>> getAll() async {
-    return getAllWithParameters(
-      GetAllParameters(
-        filter: PreferencesFilter(prefix: _defaultPrefix),
-      ),
-    );
+    return getAllWithPrefix(_defaultPrefix);
   }
 
   @override
   Future<Map<String, Object>> getAllWithPrefix(String prefix) async {
-    return getAllWithParameters(
-        GetAllParameters(filter: PreferencesFilter(prefix: prefix)));
-  }
-
-  @override
-  Future<Map<String, Object>> getAllWithParameters(
-      GetAllParameters parameters) async {
-    final PreferencesFilter filter = parameters.filter;
     final Map<String, Object> allData = <String, Object>{};
-    for (final String key
-        in _getFilteredKeys(filter.prefix, allowList: filter.allowList)) {
+    for (final String key in _getStoredFlutterKeys(prefix)) {
       allData[key] = _decodeValue(html.window.localStorage[key]!);
     }
     return allData;
@@ -86,12 +60,9 @@ class SharedPreferencesPlugin extends SharedPreferencesStorePlatform {
     return true;
   }
 
-  Iterable<String> _getFilteredKeys(
-    String prefix, {
-    Set<String>? allowList,
-  }) {
-    return html.window.localStorage.keys.where((String key) =>
-        key.startsWith(prefix) && (allowList?.contains(key) ?? true));
+  Iterable<String> _getStoredFlutterKeys(String prefix) {
+    return html.window.localStorage.keys
+        .where((String key) => key.startsWith(prefix));
   }
 
   String _encodeValue(Object? value) {

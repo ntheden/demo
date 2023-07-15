@@ -21,7 +21,7 @@ import 'runtime_selection.dart';
 /// matches any test selection.
 ///
 /// An empty [TestSelection()] will run all tests in the suite.
-final class TestSelection {
+class TestSelection {
   /// The patterns to check against test case names.
   ///
   /// Only run tests which match all the patterns.
@@ -39,7 +39,7 @@ final class TestSelection {
 /// Suite-level configuration.
 ///
 /// This tracks configuration that can differ from suite to suite.
-final class SuiteConfiguration {
+class SuiteConfiguration {
   /// Empty configuration with only default values.
   ///
   /// Using this is slightly more efficient than manually constructing a new

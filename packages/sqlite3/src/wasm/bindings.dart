@@ -2,8 +2,6 @@ import 'dart:collection';
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:sqlite3/src/vfs.dart';
-
 import '../constants.dart';
 import '../functions.dart';
 import '../implementation/bindings.dart';
@@ -12,7 +10,7 @@ import 'wasm_interop.dart';
 
 // ignore_for_file: non_constant_identifier_names
 
-final class WasmSqliteBindings extends RawSqliteBindings {
+class WasmSqliteBindings implements RawSqliteBindings {
   final wasm.WasmBindings bindings;
 
   WasmSqliteBindings(this.bindings);
@@ -60,7 +58,7 @@ final class WasmSqliteBindings extends RawSqliteBindings {
     final vfsPtr = zVfs == null ? 0 : bindings.allocateZeroTerminated(zVfs);
 
     final result = bindings.sqlite3_open_v2(namePtr, outDb, flags, vfsPtr);
-    final dbPtr = bindings.memory.int32ValueOfPointer(outDb);
+    final dbPtr = bindings.int32ValueOfPointer(outDb);
 
     // Free pointers we allocateed
     bindings
@@ -75,35 +73,9 @@ final class WasmSqliteBindings extends RawSqliteBindings {
   String sqlite3_sourceid() {
     return bindings.memory.readString(bindings.sqlite3_sourceid());
   }
-
-  void registerVirtualFileSystem(VirtualFileSystem vfs, int makeDefault) {
-    final name = bindings.allocateZeroTerminated(vfs.name);
-    final id = bindings.callbacks.registerVfs(vfs);
-
-    final ptr = bindings.dart_sqlite3_register_vfs(name, id, makeDefault);
-    DartCallbacks.sqliteVfsPointer[vfs] = ptr;
-  }
-
-  void unregisterVirtualFileSystem(VirtualFileSystem vfs) {
-    final ptr = DartCallbacks.sqliteVfsPointer[vfs];
-    if (ptr == null) {
-      throw StateError('vfs has not been registered');
-    }
-
-    // zName field is the fifth field, after the (word-sized) iVersion, szOsFile,
-    // maxPathname and pNext pointers.
-    final zNamePtr = ptr + 4 * 4;
-    final pAppDataPtr = zNamePtr + 4;
-
-    bindings.sqlite3_vfs_unregister(ptr);
-    bindings.free(zNamePtr);
-
-    final dartId = bindings.memory.int32ValueOfPointer(pAppDataPtr);
-    bindings.callbacks.registeredVfs.remove(dartId);
-  }
 }
 
-final class WasmDatabase extends RawSqliteDatabase {
+class WasmDatabase implements RawSqliteDatabase {
   final wasm.WasmBindings bindings;
   final wasm.Pointer db;
 
@@ -247,7 +219,7 @@ final class WasmDatabase extends RawSqliteDatabase {
   }
 }
 
-final class WasmStatementCompiler extends RawStatementCompiler {
+class WasmStatementCompiler implements RawStatementCompiler {
   final WasmDatabase database;
   final Pointer sql;
   final Pointer stmtOut;
@@ -268,7 +240,7 @@ final class WasmStatementCompiler extends RawStatementCompiler {
   @override
   int get endOffset {
     final bindings = database.bindings;
-    return bindings.memory.int32ValueOfPointer(pzTail) - sql;
+    return bindings.int32ValueOfPointer(pzTail) - sql;
   }
 
   @override
@@ -283,14 +255,14 @@ final class WasmStatementCompiler extends RawStatementCompiler {
       pzTail,
     );
 
-    final stmt = database.bindings.memory.int32ValueOfPointer(stmtOut);
+    final stmt = database.bindings.int32ValueOfPointer(stmtOut);
     final libraryStatement = stmt == 0 ? null : WasmStatement(database, stmt);
 
     return SqliteResult(result, libraryStatement);
   }
 }
 
-final class WasmStatement extends RawSqliteStatement {
+class WasmStatement implements RawSqliteStatement {
   final WasmDatabase database;
   final Pointer stmt;
   final WasmBindings bindings;
@@ -430,7 +402,7 @@ final class WasmStatement extends RawSqliteStatement {
   bool get supportsReadingTableNameForColumn => false;
 }
 
-final class WasmContext extends RawSqliteContext {
+class WasmContext extends RawSqliteContext {
   final WasmBindings bindings;
   final Pointer context;
   final DartCallbacks callbacks;
@@ -452,7 +424,7 @@ final class WasmContext extends RawSqliteContext {
   @override
   AggregateContext<Object?>? get dartAggregateContext {
     final agCtxPtr = _rawAggregateContext;
-    final value = bindings.memory.int32ValueOfPointer(agCtxPtr);
+    final value = bindings.int32ValueOfPointer(agCtxPtr);
 
     // Ok, we have a pointer (that sqlite3 zeroes out for us). Our state counter
     // starts at one, so if it's still zero we don't have a Dart context yet.
@@ -469,7 +441,7 @@ final class WasmContext extends RawSqliteContext {
     final id = callbacks.aggregateContextId++;
     callbacks.aggregateContexts[id] = ArgumentError.checkNotNull(value);
 
-    bindings.memory.setInt32Value(ptr, id);
+    bindings.setInt32Value(ptr, id);
   }
 
   @override
@@ -521,7 +493,7 @@ final class WasmContext extends RawSqliteContext {
   }
 }
 
-final class WasmValue extends RawSqliteValue {
+class WasmValue extends RawSqliteValue {
   final WasmBindings bindings;
   final Pointer value;
 
@@ -572,8 +544,8 @@ class WasmValueList extends ListBase<WasmValue> {
 
   @override
   WasmValue operator [](int index) {
-    final valuePtr = bindings.memory
-        .int32ValueOfPointer(value + index * WasmBindings.pointerSize);
+    final valuePtr =
+        bindings.int32ValueOfPointer(value + index * WasmBindings.pointerSize);
     return WasmValue(bindings, valuePtr);
   }
 

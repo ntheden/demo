@@ -118,7 +118,7 @@ class _ConfigurationLoader {
     var foldStackFrames = _loadFoldedStackFrames();
     var jsTrace = _getBool('js_trace');
 
-    var timeout = _parseValue('timeout', Timeout.parse);
+    var timeout = _parseValue('timeout', (value) => Timeout.parse(value));
 
     var onPlatform = _getMap('on_platform',
         key: (keyNode) => _parseNode(keyNode, 'on_platform key',
@@ -154,7 +154,7 @@ class _ConfigurationLoader {
             foldTraceExcept: foldStackFrames['except'],
             foldTraceOnly: foldStackFrames['only'])
         .merge(_extractPresets<PlatformSelector>(
-            onPlatform, Configuration.onPlatform));
+            onPlatform, (map) => Configuration.onPlatform(map)));
 
     var osConfig = onOS[currentOS];
     return osConfig == null ? config : config.merge(osConfig);
@@ -194,8 +194,8 @@ class _ConfigurationLoader {
         'add_tags', (tagNode) => _parseIdentifierLike(tagNode, 'Tag name'));
 
     var tags = _getMap('tags',
-        key: (keyNode) =>
-            _parseNode(keyNode, 'tags key', BooleanSelector.parse),
+        key: (keyNode) => _parseNode(
+            keyNode, 'tags key', (value) => BooleanSelector.parse(value)),
         value: (valueNode) =>
             _nestedConfig(valueNode, 'tag value', runnerConfig: false));
 
@@ -213,7 +213,8 @@ class _ConfigurationLoader {
             addTags: addTags,
             allowTestRandomization: allowTestRandomization,
             allowDuplicateTestNames: allowDuplicateTestNames)
-        .merge(_extractPresets<BooleanSelector>(tags, Configuration.tags));
+        .merge(_extractPresets<BooleanSelector>(
+            tags, (map) => Configuration.tags(map)));
   }
 
   /// Loads runner configuration that's allowed in the global configuration
@@ -345,12 +346,12 @@ class _ConfigurationLoader {
 
     var patterns = _getList('names', (nameNode) {
       _validate(nameNode, 'Names must be strings.', (value) => value is String);
-      return _parseNode(nameNode, 'name', RegExp.new);
+      return _parseNode(nameNode, 'name', (value) => RegExp(value));
     })
       ..addAll(_getList('plain_names', (nameNode) {
         _validate(
             nameNode, 'Names must be strings.', (value) => value is String);
-        return _parseNode(nameNode, 'name', RegExp.new);
+        return _parseNode(nameNode, 'name', (value) => RegExp(value));
       }));
 
     var paths = _getList('paths', (pathNode) {
@@ -360,7 +361,7 @@ class _ConfigurationLoader {
       return _parseNode(pathNode, 'path', p.fromUri);
     });
 
-    var filename = _parseValue('filename', Glob.new);
+    var filename = _parseValue('filename', (value) => Glob(value));
 
     var includeTags = _parseBooleanSelector('include_tags');
     var excludeTags = _parseBooleanSelector('exclude_tags');
@@ -548,7 +549,7 @@ class _ConfigurationLoader {
 
   /// Parses [node]'s value as a boolean selector.
   BooleanSelector? _parseBooleanSelector(String name) =>
-      _parseValue(name, BooleanSelector.parse);
+      _parseValue(name, (value) => BooleanSelector.parse(value));
 
   /// Parses [node]'s value as a platform selector.
   PlatformSelector? _parsePlatformSelector(String field) {

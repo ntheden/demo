@@ -13,7 +13,7 @@ class Pair<E, F> {
   String toString() => '($first, $last)';
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(other) {
     if (other is! Pair) return false;
     return other.first == first && other.last == last;
   }

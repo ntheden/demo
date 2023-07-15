@@ -47,8 +47,7 @@ class Firefox extends Browser {
       '--no-remote',
       ...settings.arguments,
     ], environment: {
-      'MOZ_CRASHREPORTER_DISABLE': '1',
-      'MOZ_AUTOMATION': '1',
+      'MOZ_CRASHREPORTER_DISABLE': '1'
     });
 
     unawaited(process.exitCode.then((_) => Directory(dir).deleteWithRetry()));

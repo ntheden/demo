@@ -13,7 +13,6 @@ import 'src/backend/state.dart';
 import 'src/backend/suite.dart';
 import 'src/backend/suite_platform.dart';
 
-@Deprecated('These classes are unused for monitoring tests. Use `State`.')
 export 'src/backend/state.dart' show Result, Status;
 export 'src/backend/test_failure.dart' show TestFailure;
 
@@ -26,7 +25,7 @@ export 'src/backend/test_failure.dart' show TestFailure;
 /// Use [run] to run a test body and query for the success or failure.
 ///
 /// Use [start] to start a test and query for whether it has finished running.
-final class TestCaseMonitor {
+class TestCaseMonitor {
   final LiveTest _liveTest;
   final _done = Completer<void>();
   TestCaseMonitor._(FutureOr<void> Function() body)

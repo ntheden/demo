@@ -58,7 +58,7 @@ class BindingsWithLibrary {
       this.supportsColumnTableName);
 }
 
-final class FfiBindings extends RawSqliteBindings {
+class FfiBindings implements RawSqliteBindings {
   final BindingsWithLibrary bindings;
 
   FfiBindings(this.bindings) {
@@ -121,7 +121,7 @@ final class FfiBindings extends RawSqliteBindings {
   }
 }
 
-final class FfiDatabase extends RawSqliteDatabase {
+class FfiDatabase implements RawSqliteDatabase {
   final BindingsWithLibrary bindings;
   final Pointer<sqlite3> db;
 
@@ -273,7 +273,7 @@ final class FfiDatabase extends RawSqliteDatabase {
   }
 }
 
-final class FfiStatementCompiler extends RawStatementCompiler {
+class FfiStatementCompiler implements RawStatementCompiler {
   final FfiDatabase database;
   final Pointer<Uint8> sql;
   final Pointer<Pointer<sqlite3_stmt>> stmtOut = allocate();
@@ -329,7 +329,7 @@ final class FfiStatementCompiler extends RawStatementCompiler {
   }
 }
 
-final class FfiStatement extends RawSqliteStatement {
+class FfiStatement implements RawSqliteStatement {
   final FfiDatabase database;
   final Bindings bindings;
   final Pointer<sqlite3_stmt> stmt;
@@ -474,7 +474,7 @@ final class FfiStatement extends RawSqliteStatement {
       database.bindings.supportsColumnTableName;
 }
 
-final class FfiValue extends RawSqliteValue {
+class FfiValue implements RawSqliteValue {
   final Bindings bindings;
   final Pointer<sqlite3_value> value;
 
@@ -509,7 +509,7 @@ final class FfiValue extends RawSqliteValue {
   }
 }
 
-final class FfiContext extends RawSqliteContext {
+class FfiContext implements RawSqliteContext {
   final Bindings bindings;
   final Pointer<sqlite3_context> context;
 

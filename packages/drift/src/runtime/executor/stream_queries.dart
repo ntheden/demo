@@ -80,6 +80,8 @@ class StreamQueryStore {
   final StreamController<Set<TableUpdate>> _tableUpdates =
       StreamController.broadcast(sync: true);
 
+  StreamQueryStore();
+
   /// Creates a new stream from the select statement.
   Stream<List<Map<String, Object?>>> registerStream(
       QueryStreamFetcher fetcher) {
@@ -117,7 +119,7 @@ class StreamQueryStore {
     _tableUpdates.add(updates);
   }
 
-  void markAsClosed(QueryStream stream, void Function() whenRemoved) {
+  void markAsClosed(QueryStream stream, Function() whenRemoved) {
     if (_isShuttingDown) return;
 
     final key = stream._fetcher.key;

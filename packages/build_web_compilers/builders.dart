@@ -29,7 +29,6 @@ Builder ddcBuilder(BuilderOptions options) {
     useIncrementalCompiler: _readUseIncrementalCompilerOption(options),
     generateFullDill: _readGenerateFullDillOption(options),
     emitDebugSymbols: _readEmitDebugSymbolsOption(options),
-    canaryFeatures: _readCanaryOption(options),
     sdkKernelPath: sdkDdcKernelPath,
     trackUnusedInputs: _readTrackInputsCompilerOption(options),
     platform: ddcPlatform,
@@ -53,11 +52,9 @@ Builder ddcKernelBuilder(BuilderOptions options) {
 }
 
 Builder sdkJsCopyRequirejs(_) => SdkJsCopyBuilder();
-Builder sdkJsCompile(BuilderOptions options) => SdkJsCompileBuilder(
-      sdkKernelPath: 'lib/_internal/ddc_platform.dill',
-      outputPath: 'lib/src/dev_compiler/dart_sdk.js',
-      canaryFeatures: _readCanaryOption(options),
-    );
+Builder sdkJsCompile(_) => SdkJsCompileBuilder(
+    sdkKernelPath: 'lib/_internal/ddc_platform.dill',
+    outputPath: 'lib/src/dev_compiler/dart_sdk.js');
 
 // Dart2js related builders
 Builder dart2jsMetaModuleBuilder(BuilderOptions options) =>
@@ -105,10 +102,6 @@ bool _readEmitDebugSymbolsOption(BuilderOptions options) {
   return options.config[_emitDebugSymbolsOption] as bool? ?? false;
 }
 
-bool _readCanaryOption(BuilderOptions options) {
-  return options.config[_canaryOption] as bool? ?? false;
-}
-
 bool _readTrackInputsCompilerOption(BuilderOptions options) {
   return options.config[_trackUnusedInputsCompilerOption] as bool? ?? true;
 }
@@ -122,7 +115,6 @@ Map<String, dynamic>? _previousDdcConfig;
 const _useIncrementalCompilerOption = 'use-incremental-compiler';
 const _generateFullDillOption = 'generate-full-dill';
 const _emitDebugSymbolsOption = 'emit-debug-symbols';
-const _canaryOption = 'canary';
 const _trackUnusedInputsCompilerOption = 'track-unused-inputs';
 const _environmentOption = 'environment';
 
@@ -131,6 +123,5 @@ const _supportedOptions = [
   _useIncrementalCompilerOption,
   _generateFullDillOption,
   _emitDebugSymbolsOption,
-  _canaryOption,
   _trackUnusedInputsCompilerOption,
 ];

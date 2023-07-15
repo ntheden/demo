@@ -95,15 +95,14 @@ class Parser {
     _grammar.options.forEach((name, option) {
       var parsedOption = _results[name];
 
-      var callback = option.callback;
-      if (callback == null) return;
-
-      // Check if an option is mandatory and was passed; if not, throw an
-      // exception.
+      // Check if an option was mandatory and exist
+      // if not throw an exception
       if (option.mandatory && parsedOption == null) {
         throw ArgParserException('Option $name is mandatory.');
       }
 
+      var callback = option.callback;
+      if (callback == null) return;
       // ignore: avoid_dynamic_calls
       callback(option.valueOrDefault(parsedOption));
     });

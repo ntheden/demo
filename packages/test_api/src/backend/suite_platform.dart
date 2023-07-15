@@ -7,7 +7,7 @@ import 'operating_system.dart';
 import 'runtime.dart';
 
 /// The platform on which a test suite is loaded.
-final class SuitePlatform {
+class SuitePlatform {
   /// The runtime that hosts the suite.
   final Runtime runtime;
 
